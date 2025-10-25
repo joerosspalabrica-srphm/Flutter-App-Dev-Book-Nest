@@ -12,6 +12,7 @@ flutter:
   assets:
     - assets/logo.png
     - assets/background logo.png
+    - assets/homepage post.png
 
 # Dependencies
 dependencies:

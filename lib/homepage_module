@@ -1,0 +1,447 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'posting_module.dart';
+
+void main() {
+  runApp(const BookReadingApp());
+}
+
+class BookReadingApp extends StatelessWidget {
+  const BookReadingApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Book Reading List',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF1B3A5C),
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        fontFamily: 'Roboto',
+      ),
+      home: const HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  String selectedCategory = 'All';
+  String searchQuery = '';
+  final TextEditingController searchController = TextEditingController();
+  int selectedNavIndex = 0;
+  late List<AnimationController> _iconAnimationControllers;
+
+  final List<String> categories = [
+    'All',
+    'Education',
+    'Non - Fiction',
+    'Mystery',
+    'Fiction',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _iconAnimationControllers = List.generate(
+      4,
+      (index) => AnimationController(
+        duration: const Duration(milliseconds: 300),
+        vsync: this,
+      ),
+    );
+    _iconAnimationControllers[0].forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header Section
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome,',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Joeross Palabrica',
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          color: const Color(0xFF1B3A5C),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xFF4A90E2),
+                    child: Image.asset(
+                      'assets/avatar.png',
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 32,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Homepage Post Image
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/homepage post.png',
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 50,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Section Header and Search
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                children: [
+                  Text(
+                    'Section',
+                    style: GoogleFonts.poppins(
+                      fontSize: 28,
+                      color: const Color(0xFF1B3A5C),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4DCE5),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle: GoogleFonts.poppins(
+                            color: Colors.grey[600],
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey[600],
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Category Filters
+            SizedBox(
+              height: 45,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  final isSelected = selectedCategory == category;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = category;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFD67730)
+                              : const Color(0xFF1B3A5C),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFD67730)
+                                : const Color(0xFF1B3A5C),
+                            width: 2,
+                          ),
+                        ),
+                        child: Text(
+                          category,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Books Grid (Placeholder)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.book_outlined,
+                        size: 80,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No books yet',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add books to start your reading list',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Add Book Button
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Navigate to posting module
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BookPostingForm(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE67E22),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Text(
+                    'Add a Book here',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Helper Text
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Text(
+                'Add your books to this section to make them\navailable for borrowing.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: selectedNavIndex,
+          onTap: (index) {
+            setState(() {
+              _iconAnimationControllers[selectedNavIndex].reverse();
+              selectedNavIndex = index;
+              _iconAnimationControllers[index].forward();
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFFE67E22),
+          unselectedItemColor: const Color(0xFF1B3A5C),
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          elevation: 0,
+          items: [
+            BottomNavigationBarItem(
+              icon: _buildAnimatedIcon(
+                Icons.home_rounded,
+                Icons.home_rounded,
+                0,
+              ),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildAnimatedIcon(
+                Icons.menu_book_rounded,
+                Icons.menu_book_rounded,
+                1,
+              ),
+              label: 'Bookmarks',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildAnimatedIcon(
+                Icons.chat_bubble_rounded,
+                Icons.chat_bubble_rounded,
+                2,
+              ),
+              label: 'Messages',
+            ),
+            BottomNavigationBarItem(
+              icon: _buildAnimatedIcon(
+                Icons.person_rounded,
+                Icons.person_rounded,
+                3,
+              ),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    for (var controller in _iconAnimationControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index) {
+    return AnimatedBuilder(
+      animation: _iconAnimationControllers[index],
+      builder: (context, child) {
+        final animation = _iconAnimationControllers[index];
+        final isSelected = selectedNavIndex == index;
+        
+        // Elastic bounce curve for scale
+        final scaleValue = isSelected 
+            ? 1.0 + (Curves.elasticOut.transform(animation.value) * 0.25)
+            : 1.0 - (animation.value * 0.1);
+        
+        // Subtle rotation for dynamic effect
+        final rotationValue = isSelected
+            ? (Curves.easeOutBack.transform(animation.value) * 0.1) - 0.05
+            : 0.0;
+        
+        return Transform.rotate(
+          angle: rotationValue,
+          child: Transform.scale(
+            scale: scaleValue,
+            child: Icon(
+              selectedNavIndex == index ? filledIcon : outlinedIcon,
+              size: 32,
+              color: selectedNavIndex == index
+                  ? const Color(0xFFE67E22)
+                  : const Color(0xFF1B3A5C),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
