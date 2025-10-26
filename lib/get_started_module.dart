@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
+// Import the login / register module so we can navigate to the Register screen
+import 'sign-up_and_log-in_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,6 +23,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
 class BookNestScreen extends StatelessWidget {
   const BookNestScreen({super.key});
@@ -124,8 +127,13 @@ class BookNestScreen extends StatelessWidget {
                       height: 50,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Add navigation logic here
-                          print("Get Started pressed");
+                          // Navigate to the Register screen from the sign-up module
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterScreen(),
+                            ),
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A8A),
