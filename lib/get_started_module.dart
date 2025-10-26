@@ -1,12 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Commented out to avoid network errors
 import 'dart:ui';
 // Import the login / register module so we can navigate to the Register screen
 import 'sign-up_and_log-in_module.dart';
 
-void main() {
-  runApp(const MyApp());
+// Helper function to create Poppins-style text
+TextStyle poppinsStyle({
+  double fontSize = 14,
+  FontWeight fontWeight = FontWeight.normal,
+  Color color = Colors.black,
+  double? height,
+}) {
+  return TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: height,
+  );
 }
+
+// Note: main() is in main.dart, not here
+// This module provides the BookNestScreen UI
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -35,12 +50,11 @@ class BookNestScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Top half with background image and logo
+            // Top half background image and logo
             Expanded(
               flex: 1,
               child: Stack(
                 children: [
-                  // Background Image (top half only) with heavy blur, whitening, and low contrast
                   Stack(
                     children: [
                       SizedBox(
@@ -92,7 +106,7 @@ class BookNestScreen extends StatelessWidget {
                     Text(
                       "Where Every Borrowed Book\nTells a New Story.",
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: poppinsStyle(
                         fontSize: MediaQuery.of(context).size.width * 0.055,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF1E3A8A),
@@ -110,7 +124,7 @@ class BookNestScreen extends StatelessWidget {
                       child: Text(
                         "A book is more than just words on a page. It's a shared experience that can connect people.",
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
+                        style: poppinsStyle(
                           fontSize: MediaQuery.of(context).size.width * 0.035,
                           fontWeight: FontWeight.w400,
                           color: const Color(0xFF64748B),
@@ -137,7 +151,6 @@ class BookNestScreen extends StatelessWidget {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1E3A8A),
-                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
@@ -145,9 +158,10 @@ class BookNestScreen extends StatelessWidget {
                         ),
                         child: Text(
                           "Get Started",
-                          style: GoogleFonts.poppins(
+                          style: poppinsStyle(
                             fontSize: MediaQuery.of(context).size.width * 0.04,
                             fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
                         ),
                       ),

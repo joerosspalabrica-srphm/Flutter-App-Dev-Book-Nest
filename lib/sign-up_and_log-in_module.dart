@@ -1,43 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'homepage_module' as homepage;
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const BookNestApp());
+// Helper function to create Poppins-style text
+TextStyle poppinsStyle({
+  double fontSize = 14,
+  FontWeight fontWeight = FontWeight.normal,
+  Color color = Colors.black,
+  double? height,
+}) {
+  return TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: height,
+  );
 }
 
-class BookNestApp extends StatelessWidget {
-  const BookNestApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Book Nest',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF003366),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF003366),
-          primary: const Color(0xFF003366),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Color(0xFF003366), width: 2),
-          ),
-        ),
-      ),
-      home: const LoginScreen(),
-    );
-  }
-}
+// Note: Firebase is initialized in main.dart, not here
+// This module just provides the UI screens
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -69,10 +52,40 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login successful!')),
+      );
+      
+      // Navigate to homepage after successful login
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const homepage.HomeScreen(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: ${e.message ?? e.code}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: ${e.toString()}')),
       );
     }
   }
@@ -128,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Text(
                             'Hello',
-                            style: GoogleFonts.poppins(
+                            style: poppinsStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF003366),
@@ -138,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'Sign Into Your Account',
-                            style: GoogleFonts.poppins(
+                            style: poppinsStyle(
                               fontSize: 16,
                               color: Colors.grey.shade700,
                             ),
@@ -151,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _emailController,
                             decoration: InputDecoration(
                               labelText: 'WVSU Email Address',
-                              labelStyle: GoogleFonts.poppins(
+                              labelStyle: poppinsStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
@@ -170,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _passwordController,
                             decoration: InputDecoration(
                               labelText: 'Password',
-                              labelStyle: GoogleFonts.poppins(
+                              labelStyle: poppinsStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
@@ -211,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                               child: Text(
                                 'Forgot Your Password?',
-                                style: GoogleFonts.poppins(
+                                style: poppinsStyle(
                                   color: Colors.grey.shade600,
                                   fontSize: 14,
                                 ),
@@ -232,7 +245,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: Text(
                               'Login',
-                              style: GoogleFonts.poppins(
+                              style: poppinsStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -251,7 +264,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Text(
                         "Don't have an account? ",
-                        style: GoogleFonts.poppins(
+                        style: poppinsStyle(
                           color: Colors.grey.shade700,
                         ),
                       ),
@@ -266,7 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                         child: Text(
                           'Register Now',
-                          style: GoogleFonts.poppins(
+                          style: poppinsStyle(
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF003366),
                           ),
@@ -317,7 +330,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  void _register() {
+  Future<void> _register() async {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -326,10 +339,83 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       return;
     }
-    
-    if (_formKey.currentState!.validate()) {
+
+    if (!_formKey.currentState!.validate()) return;
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    try {
+      print('DEBUG: Starting registration for email: $email');
+      
+      // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration successful!')),
+        const SnackBar(
+          content: Text('Registering your account...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      print('DEBUG: Calling createUserWithEmailAndPassword...');
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      print('DEBUG: User created successfully: ${userCredential.user?.uid}');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful! Welcome to Book Nest.')),
+      );
+
+      // After registration, navigate to homepage
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const homepage.HomeScreen(),
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      
+      print('DEBUG: FirebaseAuthException - Code: ${e.code}, Message: ${e.message}');
+      
+      String errorMessage = 'Registration failed';
+      
+      // Handle specific Firebase errors
+      if (e.code == 'email-already-in-use') {
+        errorMessage = 'This email is already registered';
+      } else if (e.code == 'weak-password') {
+        errorMessage = 'Password is too weak. Use at least 6 characters';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (e.message?.contains('reCAPTCHA') ?? false) {
+        errorMessage = 'reCAPTCHA verification failed. Please check your internet connection or try again.';
+      } else {
+        errorMessage = e.message ?? e.code;
+      }
+      
+      print('DEBUG: Error message: $errorMessage');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      
+      print('DEBUG: General Exception - ${e.toString()}');
+      
+      String errorMessage = 'Registration failed: ${e.toString()}';
+      if (e.toString().contains('reCAPTCHA') || e.toString().contains('network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
       );
     }
   }
@@ -361,7 +447,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Expanded(
                         child: Text(
                           'Terms and Conditions',
-                          style: GoogleFonts.poppins(
+                          style: poppinsStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -384,7 +470,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         Text(
                           'Book Nest App – Terms and Conditions',
-                          style: GoogleFonts.poppins(
+                          style: poppinsStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF003366),
@@ -393,7 +479,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 16),
                         Text(
                           'Welcome to Book Nest! By using this application, you agree to the following terms:',
-                          style: GoogleFonts.poppins(
+                          style: poppinsStyle(
                             fontSize: 14,
                             color: Colors.grey.shade800,
                             height: 1.5,
@@ -430,7 +516,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           child: Text(
                             'By clicking "Agree" or continuing to use the app, you confirm that you have read and accepted these Terms and Conditions.',
-                            style: GoogleFonts.poppins(
+                            style: poppinsStyle(
                               fontSize: 13,
                               color: const Color(0xFF003366),
                               fontWeight: FontWeight.w500,
@@ -465,7 +551,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       child: Text(
                         'Close',
-                        style: GoogleFonts.poppins(
+                        style: poppinsStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -490,7 +576,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           Text(
             title,
-            style: GoogleFonts.poppins(
+            style: poppinsStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: const Color(0xFF003366),
@@ -499,7 +585,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 6),
           Text(
             content,
-            style: GoogleFonts.poppins(
+            style: poppinsStyle(
               fontSize: 14,
               color: Colors.grey.shade700,
               height: 1.5,
@@ -561,7 +647,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         children: [
                           Text(
                             'Create Account',
-                            style: GoogleFonts.poppins(
+                            style: poppinsStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF003366),
@@ -575,7 +661,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: _nameController,
                             decoration: InputDecoration(
                               labelText: 'User Name',
-                              labelStyle: GoogleFonts.poppins(
+                              labelStyle: poppinsStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
@@ -598,7 +684,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: _emailController,
                             decoration: InputDecoration(
                               labelText: 'WVSU Email Address',
-                              labelStyle: GoogleFonts.poppins(
+                              labelStyle: poppinsStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
@@ -617,7 +703,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: _passwordController,
                             decoration: InputDecoration(
                               labelText: 'Password',
-                              labelStyle: GoogleFonts.poppins(
+                              labelStyle: poppinsStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
                               ),
@@ -669,7 +755,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   },
                                   child: RichText(
                                     text: TextSpan(
-                                      style: GoogleFonts.poppins(
+                                      style: poppinsStyle(
                                         fontSize: 14,
                                         color: Colors.grey.shade700,
                                       ),
@@ -686,7 +772,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             },
                                             child: Text(
                                               'Terms & Condition',
-                                              style: GoogleFonts.poppins(
+                                              style: poppinsStyle(
                                                 fontSize: 14,
                                                 color: const Color(0xFF003366),
                                                 fontWeight: FontWeight.bold,
@@ -715,7 +801,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             child: Text(
                               'Register Now',
-                              style: GoogleFonts.poppins(
+                              style: poppinsStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -734,15 +820,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Text(
                         'Already have an account? ',
-                        style: GoogleFonts.poppins(
+                        style: poppinsStyle(
                           color: Colors.grey.shade700,
                         ),
                       ),
                       TextButton(
                         onPressed: () {
-                          // Replace the Register screen with the Login screen so
-                          // the user lands on the login form instead of going back
-                          // to the previous (Get Started) page.
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
@@ -752,7 +835,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                         child: Text(
                           'Login',
-                          style: GoogleFonts.poppins(
+                          style: poppinsStyle(
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF003366),
                           ),
