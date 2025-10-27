@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'homepage_module' as homepage;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Book Nest',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF1B3A5C),
+        scaffoldBackgroundColor: Colors.white,
+        fontFamily: 'Poppins',
+      ),
+      home: const LoginScreen(),
+    );
+  }
+}
 
 // Helper function to create Poppins-style text
 TextStyle poppinsStyle({
@@ -10,8 +35,7 @@ TextStyle poppinsStyle({
   Color color = Colors.black,
   double? height,
 }) {
-  return TextStyle(
-    fontFamily: 'Poppins',
+  return GoogleFonts.poppins(
     fontSize: fontSize,
     fontWeight: fontWeight,
     color: color,

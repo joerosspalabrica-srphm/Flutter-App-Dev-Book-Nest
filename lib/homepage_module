@@ -1,6 +1,29 @@
 import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart'; // Commented out to avoid network errors
+import 'package:google_fonts/google_fonts.dart';
 import 'posting_module.dart';
+import 'chat_module.dart' show ChatsScreen;
+
+void main() {
+  runApp(const BookReadingApp());
+}
+
+class BookReadingApp extends StatelessWidget {
+  const BookReadingApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Book Reading List',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF1B3A5C),
+        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+        fontFamily: 'Roboto',
+      ),
+      home: const HomeScreen(),
+    );
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -55,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       Text(
                         'Welcome,',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 18,
                           color: Colors.grey[700],
                           fontWeight: FontWeight.w400,
@@ -64,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(height: 4),
                       Text(
                         'Joeross Palabrica',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 24,
                           color: const Color(0xFF1B3A5C),
                           fontWeight: FontWeight.bold,
@@ -128,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   Text(
                     'Section',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 28,
                       color: const Color(0xFF1B3A5C),
                       fontWeight: FontWeight.bold,
@@ -151,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         },
                         decoration: InputDecoration(
                           hintText: 'Search',
-                          hintStyle: TextStyle(
+                          hintStyle: GoogleFonts.poppins(
                             color: Colors.grey[600],
                           ),
                           prefixIcon: Icon(
@@ -210,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                         child: Text(
                           category,
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontWeight: isSelected
                                 ? FontWeight.bold
@@ -243,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(height: 16),
                       Text(
                         'No books yet',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 20,
                           color: Colors.grey[600],
                           fontWeight: FontWeight.w500,
@@ -252,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(height: 8),
                       Text(
                         'Add books to start your reading list',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 14,
                           color: Colors.grey[500],
                         ),
@@ -288,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   child: Text(
                     'Add a Book here',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -304,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Text(
                 'Add your books to this section to make them\navailable for borrowing.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 12,
                   color: Colors.grey[600],
                   height: 1.4,
@@ -333,6 +356,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               selectedNavIndex = index;
               _iconAnimationControllers[index].forward();
             });
+            
+            // Navigate to chat module when messages icon is tapped
+            if (index == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChatsScreen(),
+                ),
+              ).then((_) {
+                // Reset to home when coming back
+                setState(() {
+                  _iconAnimationControllers[selectedNavIndex].reverse();
+                  selectedNavIndex = 0;
+                  _iconAnimationControllers[0].forward();
+                });
+              });
+            }
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
