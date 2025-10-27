@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'homepage_module' show HomeScreen;
 import 'favorite_module.dart' show FavoritesScreen;
 import 'chat_module.dart' show ChatsScreen;
+import 'my-postings_module.dart' show PostingsScreen;
 
 void main() {
   runApp(const MyApp());
@@ -135,7 +136,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       _buildMenuItem(
                         icon: Icons.access_time,
                         title: 'Posting History',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PostingsScreen(),
+                            ),
+                          );
+                        },
                         isSmallScreen: isSmallScreen,
                       ),
                       const Divider(height: 30),
