@@ -62,13 +62,31 @@ class _ChatScreenState extends State<ChatScreen> {
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty) return;
 
-    setState(() {
-      _messages.add(Message(
-        text: _messageController.text,
-        isUser: true,
-        timestamp: DateTime.now(),
-      ));
-    });
+    // If this is a system chat, show auto-reply
+    if (widget.isSystemChat) {
+      setState(() {
+        _messages.add(Message(
+          text: _messageController.text,
+          isUser: true,
+          timestamp: DateTime.now(),
+        ));
+        
+        // Add system auto-reply
+        _messages.add(Message(
+          text: 'This is a System Generated Message. You cannot reply to this conversation. For assistance, please contact the Book Nest support team.',
+          isUser: false,
+          timestamp: DateTime.now(),
+        ));
+      });
+    } else {
+      setState(() {
+        _messages.add(Message(
+          text: _messageController.text,
+          isUser: true,
+          timestamp: DateTime.now(),
+        ));
+      });
+    }
 
     _messageController.clear();
     
