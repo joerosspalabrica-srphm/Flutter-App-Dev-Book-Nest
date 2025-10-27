@@ -130,7 +130,7 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF1B3A5C)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF003060)),
             onPressed: () {
               Navigator.pop(context);
             },
@@ -162,12 +162,12 @@ class _ChatScreenState extends State<ChatScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF1B3A5C),
+                color: const Color(0xFF003060),
               ),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF1B3A5C)),
+            icon: const Icon(Icons.more_vert, color: Color(0xFF003060)),
             onPressed: () {},
           ),
         ],
@@ -219,7 +219,7 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: message.isUser
-                    ? const Color(0xFF1B3A5C)
+                    ? const Color(0xFF003060)
                     : const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20),

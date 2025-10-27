@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
       title: 'Book Nest',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF1B3A5C),
+        primaryColor: const Color(0xFF003060),
         scaffoldBackgroundColor: Colors.white,
         fontFamily: 'Poppins',
       ),

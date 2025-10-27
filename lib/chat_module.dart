@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'message_module.dart' show ChatScreen;
 import 'homepage_module' show HomeScreen;
+import 'favorite_module.dart' show FavoritesScreen;
 
 void main() {
   runApp(const MyApp());
@@ -106,7 +107,7 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                 style: GoogleFonts.poppins(
                   fontSize: isSmallScreen ? 28 : 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: const Color(0xFF003060),
                 ),
               ),
             ),
@@ -203,12 +204,20 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                   builder: (context) => const HomeScreen(),
                 ),
               );
+            } else if (index == 1) {
+              // Navigate to favorites
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FavoritesScreen(),
+                ),
+              );
             }
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFFE67E22),
-          unselectedItemColor: const Color(0xFF1B3A5C),
+          selectedItemColor: const Color(0xFFD67730),
+          unselectedItemColor: const Color(0xFF003060),
           showSelectedLabels: false,
           showUnselectedLabels: false,
           elevation: 0,
@@ -260,8 +269,8 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
               selectedNavIndex == index ? filledIcon : outlinedIcon,
               size: 32,
               color: selectedNavIndex == index
-                  ? const Color(0xFFE67E22)
-                  : const Color(0xFF1B3A5C),
+                  ? const Color(0xFFD67730)
+                  : const Color(0xFF003060),
             ),
           ),
         );
