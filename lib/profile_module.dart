@@ -4,6 +4,9 @@ import 'homepage_module' show HomeScreen;
 import 'favorite_module.dart' show FavoritesScreen;
 import 'chat_module.dart' show ChatsScreen;
 import 'my-postings_module.dart' show PostingsScreen;
+import 'about_us.dart' show AboutBookNestScreen;
+import 'logout_module.dart';
+import 'delete-account_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -150,7 +153,14 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       _buildMenuItem(
                         icon: Icons.info_outline,
                         title: 'About Book Nest',
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AboutBookNestScreen(),
+                            ),
+                          );
+                        },
                         isSmallScreen: isSmallScreen,
                       ),
                     ],
@@ -176,14 +186,18 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       _buildMenuItem(
                         icon: Icons.logout,
                         title: 'Log Out',
-                        onTap: () {},
+                        onTap: () {
+                          LogoutModule.showLogoutDialog(context);
+                        },
                         isSmallScreen: isSmallScreen,
                       ),
                       const Divider(height: 30),
                       _buildMenuItem(
                         icon: Icons.delete_outline,
                         title: 'Delete Account',
-                        onTap: () {},
+                        onTap: () {
+                          DeleteAccountModule.showDeleteAccountDialog(context);
+                        },
                         isSmallScreen: isSmallScreen,
                       ),
                     ],

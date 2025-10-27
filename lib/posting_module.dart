@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart'; // Commented out to avoid network errors
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: const Color(0xFF003060),
-        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+        scaffoldBackgroundColor: Colors.white,
         fontFamily: 'Poppins',
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
@@ -270,7 +270,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
     final fields = currentStepData['fields'] as List<FormFieldConfig>;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -332,7 +332,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           const SizedBox(width: 16),
           Text(
             'Add a Book for Posting',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF003060),
@@ -363,7 +363,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           if (stepData['subtitle'] != null) ...[
             Text(
               stepData['title'],
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF003060),
@@ -372,7 +372,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
             const SizedBox(height: 8),
             Text(
               stepData['subtitle'],
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 13,
                 color: const Color(0xFF6B7280),
               ),
@@ -401,7 +401,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           children: [
             Text(
               config.label,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: const Color(0xFF374151),
@@ -410,7 +410,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
             if (config.required)
               Text(
                 ' *',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFFEF4444),
@@ -427,7 +427,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
             prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
             prefixText: config.prefix,
             hintText: 'Enter ${config.label}',
-            hintStyle: TextStyle(
+            hintStyle: GoogleFonts.poppins(
               color: const Color(0xFFD1D5DB),
               fontSize: 14,
             ),
@@ -495,7 +495,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
                 ? const Icon(Icons.check, color: Colors.white, size: 20)
                 : Text(
                     '${step + 1}',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       color: isActive ? Colors.white : const Color(0xFF9CA3AF),
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -506,7 +506,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
         const SizedBox(height: 8),
         Text(
           label,
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 12,
             color: isActive ? const Color(0xFF003060) : const Color(0xFF9CA3AF),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
@@ -532,7 +532,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
         ),
         child: Text(
           _currentStep == _steps.length - 1 ? 'Submit' : 'Next',
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),

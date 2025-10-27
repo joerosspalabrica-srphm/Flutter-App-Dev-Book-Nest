@@ -49,13 +49,12 @@ class _PostingsScreenState extends State<PostingsScreen> {
     final isSmallScreen = size.width < 360;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE8E8E8),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
             // Header with Back Button and Title
-            Container(
-              color: const Color(0xFFD9D9D9),
+            Padding(
               padding: EdgeInsets.symmetric(
                 horizontal: size.width * 0.05,
                 vertical: 20,
@@ -74,8 +73,8 @@ class _PostingsScreenState extends State<PostingsScreen> {
                     borderRadius: BorderRadius.circular(30),
                     child: Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF003060),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF003060),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -90,7 +89,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
                     'Postings',
                     style: GoogleFonts.poppins(
                       fontSize: isSmallScreen ? 24 : 28,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                       color: const Color(0xFF003060),
                     ),
                   ),
@@ -98,61 +97,64 @@ class _PostingsScreenState extends State<PostingsScreen> {
               ),
             ),
 
+            const SizedBox(height: 20),
+
             // Category Filter Chips
-            Container(
-              color: const Color(0xFFD9D9D9),
-              padding: EdgeInsets.only(
-                left: size.width * 0.05,
-                right: size.width * 0.05,
-                bottom: 20,
-              ),
-              child: SingleChildScrollView(
+            SizedBox(
+              height: 45,
+              child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: categories.map((category) {
-                    final isSelected = selectedCategory == category;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: InkWell(
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = category;
-                          });
-                        },
-                        borderRadius: BorderRadius.circular(25),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
+                padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  final isSelected = selectedCategory == category;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = category;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFD67730)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(
                             color: isSelected
-                                ? const Color(0xFF003060)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                                ? const Color(0xFFD67730)
+                                : const Color(0xFF003060),
+                            width: 1.5,
                           ),
-                          child: Text(
-                            category,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF003060),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
                             ),
+                          ],
+                        ),
+                        child: Text(
+                          category,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF003060),
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
 

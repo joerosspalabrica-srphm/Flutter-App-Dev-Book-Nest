@@ -200,53 +200,56 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 360;
     
-    return Container(
-      height: 50,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16.0 : 20.0),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          final isSelected = category == selectedCategory;
-          
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  selectedCategory = category;
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFFD67730)
-                      : const Color(0xFF003060),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16.0 : 20.0),
+      child: Container(
+        height: 50,
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        color: Colors.white,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: categories.length,
+          itemBuilder: (context, index) {
+            final category = categories[index];
+            final isSelected = category == selectedCategory;
+            
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedCategory = category;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFFD67730)
                         : const Color(0xFF003060),
-                    width: 2,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFFD67730)
+                          : const Color(0xFF003060),
+                      width: 2,
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Text(
-                    category,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      color: Colors.white,
+                  child: Center(
+                    child: Text(
+                      category,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
