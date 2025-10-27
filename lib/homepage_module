@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'posting_module.dart';
 import 'chat_module.dart' show ChatsScreen;
 import 'favorite_module.dart' show FavoritesScreen;
+import 'profile_module.dart' show ProfileScreen;
 
 void main() {
   runApp(const BookReadingApp());
@@ -380,6 +381,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ChatsScreen(),
+                ),
+              ).then((_) {
+                // Reset to home when coming back
+                setState(() {
+                  _iconAnimationControllers[selectedNavIndex].reverse();
+                  selectedNavIndex = 0;
+                  _iconAnimationControllers[0].forward();
+                });
+              });
+            }
+            // Navigate to profile module when profile icon is tapped
+            else if (index == 3) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
                 ),
               ).then((_) {
                 // Reset to home when coming back

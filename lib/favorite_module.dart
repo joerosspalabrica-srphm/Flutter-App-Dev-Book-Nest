@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'homepage_module' show HomeScreen;
 import 'chat_module.dart' show ChatsScreen;
+import 'profile_module.dart' show ProfileScreen;
 
 void main() {
   runApp(const MyApp());
@@ -133,6 +134,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ChatsScreen(),
+                ),
+              );
+            } else if (index == 3) {
+              // Navigate to profile module
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
                 ),
               );
             }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'message_module.dart' show ChatScreen;
 import 'homepage_module' show HomeScreen;
 import 'favorite_module.dart' show FavoritesScreen;
+import 'profile_module.dart' show ProfileScreen;
 
 void main() {
   runApp(const MyApp());
@@ -210,6 +211,14 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                 context,
                 MaterialPageRoute(
                   builder: (context) => const FavoritesScreen(),
+                ),
+              );
+            } else if (index == 3) {
+              // Navigate to profile
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
                 ),
               );
             }
