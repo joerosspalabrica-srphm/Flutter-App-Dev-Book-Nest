@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'homepage_module' as homepage;
 
@@ -42,9 +43,6 @@ TextStyle poppinsStyle({
     height: height,
   );
 }
-
-// Note: Firebase is initialized in main.dart, not here
-// This module just provides the UI screens
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -335,6 +333,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _agreedToTerms = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -366,8 +365,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (!_formKey.currentState!.validate()) return;
 
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+
+    // Set loading state
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       print('DEBUG: Starting registration for email: $email');
@@ -386,25 +391,77 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: password,
       );
       
+      // Save the username to Firebase Auth profile
+      if (userCredential.user != null) {
+        try {
+          print('DEBUG: Updating display name...');
+          await userCredential.user!.updateDisplayName(name);
+          await userCredential.user!.reload();
+          print('DEBUG: Display name updated to: $name');
+          
+          // Also save to Firestore as backup (non-blocking)
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .set({
+            'username': name,
+            'email': email,
+            'uid': userCredential.user!.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+          }).catchError((error) {
+            // Log but don't block
+            print('DEBUG: Firestore save error (non-blocking): $error');
+          });
+          
+          // Verify the display name was saved
+          final updatedUser = FirebaseAuth.instance.currentUser;
+          print('DEBUG: Verified display name: ${updatedUser?.displayName}');
+        } catch (authError) {
+          print('DEBUG: Auth update error: $authError');
+          // Continue anyway - user was created
+        }
+      }
+      
       print('DEBUG: User created successfully: ${userCredential.user?.uid}');
 
-      if (!mounted) return;
+      if (!mounted) {
+        print('DEBUG: Widget not mounted after auth, stopping');
+        return;
+      }
+
+      // Set loading to false to allow potential retry
+      setState(() {
+        _isLoading = false;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Registration successful! Welcome to Book Nest.')),
       );
 
-      // After registration, navigate to homepage
+      // Navigate immediately to homepage
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const homepage.HomeScreen(),
-          ),
-        );
+        print('DEBUG: About to navigate to homepage');
+        try {
+          await Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const homepage.HomeScreen(),
+            ),
+          );
+          print('DEBUG: Navigation completed successfully');
+        } catch (navError) {
+          print('DEBUG: Navigation error: $navError');
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
+      
+      setState(() {
+        _isLoading = false;
+      });
       
       print('DEBUG: FirebaseAuthException - Code: ${e.code}, Message: ${e.message}');
       
@@ -431,7 +488,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (!mounted) return;
       
+      setState(() {
+        _isLoading = false;
+      });
+      
       print('DEBUG: General Exception - ${e.toString()}');
+      print('DEBUG: Exception type: ${e.runtimeType}');
       
       String errorMessage = 'Registration failed: ${e.toString()}';
       if (e.toString().contains('reCAPTCHA') || e.toString().contains('network')) {
@@ -815,7 +877,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           
                           // Register Button
                           ElevatedButton(
-                            onPressed: _register,
+                            onPressed: _isLoading ? null : _register,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF003366),
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -823,14 +885,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                            child: Text(
-                              'Register Now',
-                              style: poppinsStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    'Register Now',
+                                    style: poppinsStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                         ],
                       ),

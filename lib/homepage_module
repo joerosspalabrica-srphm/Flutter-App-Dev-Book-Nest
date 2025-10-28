@@ -1,31 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'posting_module.dart';
 import 'chat_module.dart' show ChatsScreen;
 import 'favorite_module.dart' show FavoritesScreen;
 import 'profile_module.dart' show ProfileScreen;
 
-void main() {
-  runApp(const BookReadingApp());
-}
-
-class BookReadingApp extends StatelessWidget {
-  const BookReadingApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Book Reading List',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF003060),
-        scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-        fontFamily: 'Roboto',
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
+// Note: main() is in main.dart, not here
+// This module provides the HomeScreen UI
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -40,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController searchController = TextEditingController();
   int selectedNavIndex = 0;
   late List<AnimationController> _iconAnimationControllers;
+  String userName = 'User'; // Default username
 
   final List<String> categories = [
     'All',
@@ -49,9 +33,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     'Fiction',
   ];
 
+  // Helper function for Poppins text style
+  TextStyle poppinsStyle({
+    double fontSize = 14,
+    FontWeight fontWeight = FontWeight.normal,
+    Color color = Colors.black,
+    double? height,
+  }) {
+    return TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadUserName(); // Load username from Firebase
     _iconAnimationControllers = List.generate(
       4,
       (index) => AnimationController(
@@ -60,6 +61,51 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     );
     _iconAnimationControllers[0].forward();
+  }
+
+  void _loadUserName() {
+    final user = FirebaseAuth.instance.currentUser;
+    
+    if (user != null) {
+      // First, try to get displayName from Firebase Auth (this should be instant)
+      if (user.displayName != null && user.displayName!.isNotEmpty) {
+        setState(() {
+          userName = user.displayName!;
+        });
+        print('DEBUG: Loaded username from Firebase Auth: $userName');
+      } else {
+        print('DEBUG: No displayName in Auth, will fetch from Firestore asynchronously');
+        
+        // If displayName is empty, fetch from Firestore in the background (non-blocking)
+        Future.microtask(() {
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get()
+              .timeout(const Duration(seconds: 5), onTimeout: () {
+            print('DEBUG: Firestore fetch timed out');
+            throw TimeoutException('Firestore timeout', const Duration(seconds: 5));
+          })
+              .then((docSnapshot) {
+            if (docSnapshot.exists && docSnapshot['username'] != null) {
+              if (mounted) {
+                setState(() {
+                  userName = docSnapshot['username'];
+                });
+                print('DEBUG: Loaded username from Firestore: $userName');
+              }
+            } else {
+              print('DEBUG: No username in Firestore, using default "User"');
+            }
+          }).catchError((error) {
+            print('DEBUG: Error fetching from Firestore: $error');
+            // Don't update UI on error, keep default "User"
+          });
+        });
+      }
+    } else {
+      print('DEBUG: No user logged in, using default "User"');
+    }
   }
 
   @override
@@ -80,35 +126,54 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       Text(
                         'Welcome,',
-                        style: GoogleFonts.poppins(
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 18,
-                          color: Colors.grey[700],
+                          color: Colors.grey,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Joeross Palabrica',
-                        style: GoogleFonts.poppins(
+                        userName,
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 24,
-                          color: const Color(0xFF003060),
+                          color: Color(0xFF003060),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: const Color(0xFF4A90E2),
-                    child: Image.asset(
-                      'assets/avatar.png',
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 32,
-                        );
-                      },
+                  GestureDetector(
+                    onTap: () {
+                      print('DEBUG: Avatar tapped, navigating to profile');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileScreen(),
+                        ),
+                      ).then((_) {
+                        // Reset to home when coming back from profile
+                        setState(() {
+                          selectedNavIndex = 0;
+                          _iconAnimationControllers[0].forward();
+                        });
+                      });
+                    },
+                    child: CircleAvatar(
+                      radius: 28,
+                      backgroundColor: const Color(0xFF4A90E2),
+                      child: Image.asset(
+                        'assets/avatar.png',
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 32,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -153,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 children: [
                   Text(
                     'Section',
-                    style: GoogleFonts.poppins(
+                    style: poppinsStyle(
                       fontSize: 28,
                       color: const Color(0xFF003060),
                       fontWeight: FontWeight.bold,
@@ -176,8 +241,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         },
                         decoration: InputDecoration(
                           hintText: 'Search',
-                          hintStyle: GoogleFonts.poppins(
-                            color: Colors.grey[600],
+                          hintStyle: poppinsStyle(
+                            color: Colors.grey,
                           ),
                           prefixIcon: Icon(
                             Icons.search,
@@ -237,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                           child: Text(
                             category,
-                            style: GoogleFonts.poppins(
+                            style: poppinsStyle(
                               color: Colors.white,
                               fontWeight: isSelected
                                   ? FontWeight.bold
@@ -271,18 +336,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(height: 16),
                       Text(
                         'No books yet',
-                        style: GoogleFonts.poppins(
+                        style: poppinsStyle(
                           fontSize: 20,
-                          color: Colors.grey[600],
+                          color: Colors.grey,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Add books to start your reading list',
-                        style: GoogleFonts.poppins(
+                        style: poppinsStyle(
                           fontSize: 14,
-                          color: Colors.grey[500],
+                          color: Colors.grey,
                         ),
                       ),
                     ],
@@ -316,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   child: Text(
                     'Add a Book here',
-                    style: GoogleFonts.poppins(
+                    style: poppinsStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -332,9 +397,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Text(
                 'Add your books to this section to make them\navailable for borrowing.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
+                style: poppinsStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: Colors.grey,
                   height: 1.4,
                 ),
               ),

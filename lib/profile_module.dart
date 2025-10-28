@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'homepage_module' show HomeScreen;
 import 'favorite_module.dart' show FavoritesScreen;
 import 'chat_module.dart' show ChatsScreen;
@@ -8,26 +10,8 @@ import 'about_us.dart' show AboutBookNestScreen;
 import 'logout_module.dart';
 import 'delete-account_module.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Book Nest',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'Poppins',
-        primaryColor: const Color(0xFF003060),
-      ),
-      home: const ProfileScreen(),
-    );
-  }
-}
+// Note: main() is in main.dart, not here
+// This module provides the ProfileScreen UI
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -39,10 +23,28 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateMixin {
   int selectedNavIndex = 3; // Profile is at index 3
   late List<AnimationController> _iconAnimationControllers;
+  String userName = 'User'; // Default username
+
+  // Helper function for Poppins text style
+  TextStyle poppinsStyle({
+    double fontSize = 14,
+    FontWeight fontWeight = FontWeight.normal,
+    Color color = Colors.black,
+    double? height,
+  }) {
+    return TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadUserName(); // Load username from Firebase
     _iconAnimationControllers = List.generate(
       4,
       (index) => AnimationController(
@@ -51,6 +53,51 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       ),
     );
     _iconAnimationControllers[3].forward(); // Profile icon is active
+  }
+
+  void _loadUserName() {
+    final user = FirebaseAuth.instance.currentUser;
+    
+    if (user != null) {
+      // First, try to get displayName from Firebase Auth (this should be instant)
+      if (user.displayName != null && user.displayName!.isNotEmpty) {
+        setState(() {
+          userName = user.displayName!;
+        });
+        print('DEBUG: Loaded profile username from Firebase Auth: $userName');
+      } else {
+        print('DEBUG: No displayName in Auth (profile), will fetch from Firestore asynchronously');
+        
+        // If displayName is empty, fetch from Firestore in the background (non-blocking)
+        Future.microtask(() {
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get()
+              .timeout(const Duration(seconds: 5), onTimeout: () {
+            print('DEBUG: Firestore fetch timed out (profile)');
+            throw TimeoutException('Firestore timeout', const Duration(seconds: 5));
+          })
+              .then((docSnapshot) {
+            if (docSnapshot.exists && docSnapshot['username'] != null) {
+              if (mounted) {
+                setState(() {
+                  userName = docSnapshot['username'];
+                });
+                print('DEBUG: Loaded profile username from Firestore: $userName');
+              }
+            } else {
+              print('DEBUG: No username in Firestore (profile), using default "User"');
+            }
+          }).catchError((error) {
+            print('DEBUG: Error fetching from Firestore (profile): $error');
+            // Don't update UI on error, keep default "User"
+          });
+        });
+      }
+    } else {
+      print('DEBUG: No user logged in (profile), using default "User"');
+    }
   }
 
   @override
@@ -104,8 +151,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 
                 // Name
                 Text(
-                  'Joeross Palabrica',
-                  style: GoogleFonts.poppins(
+                  userName,
+                  style: poppinsStyle(
                     fontSize: isSmallScreen ? 22 : 26,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF003060),
@@ -386,7 +433,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             Expanded(
               child: Text(
                 title,
-                style: GoogleFonts.poppins(
+                style: poppinsStyle(
                   fontSize: isSmallScreen ? 15 : 17,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFF003060),
