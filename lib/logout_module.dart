@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'get_started_module.dart';
 
 class LogoutModule {
   static Future<void> showLogoutDialog(BuildContext context) async {
@@ -12,19 +13,21 @@ class LogoutModule {
             borderRadius: BorderRadius.circular(20),
           ),
           backgroundColor: Colors.white,
-          title: Text(
+          title: const Text(
             'Log Out',
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF003060),
+              color: Color(0xFF003060),
               fontSize: 24,
             ),
           ),
-          content: Text(
+          content: const Text(
             'Are you sure you want to log out?',
-            style: GoogleFonts.poppins(
+            style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: 16,
-              color: Colors.grey[700],
+              color: Colors.grey,
             ),
           ),
           actions: [
@@ -35,23 +38,48 @@ class LogoutModule {
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: Text(
+              child: const Text(
                 'No',
-                style: GoogleFonts.poppins(
-                  color: Colors.grey[600],
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: Colors.grey,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                // Navigate to sign-up and log-in module
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login',
-                  (Route<dynamic> route) => false,
-                );
+              onPressed: () async {
+                try {
+                  print('DEBUG: Logging out user...');
+                  
+                  // Sign out from Firebase
+                  await FirebaseAuth.instance.signOut();
+                  print('DEBUG: User signed out successfully');
+                  
+                  // Close the dialog
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                  
+                  // Navigate to Get Started page and remove all previous routes
+                  if (context.mounted) {
+                    print('DEBUG: Navigating to Get Started page');
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const BookNestScreen(),
+                      ),
+                      (Route<dynamic> route) => false,
+                    );
+                  }
+                } catch (e) {
+                  print('DEBUG: Logout error: $e');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Logout failed: $e')),
+                    );
+                  }
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFD67730),
@@ -62,9 +90,10 @@ class LogoutModule {
                 ),
                 elevation: 0,
               ),
-              child: Text(
+              child: const Text(
                 'Yes',
-                style: GoogleFonts.poppins(
+                style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
