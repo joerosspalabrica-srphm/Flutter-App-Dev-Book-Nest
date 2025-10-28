@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
 import 'homepage_module' show HomeScreen;
 import 'favorite_module.dart' show FavoritesScreen;
 import 'chat_module.dart' show ChatsScreen;
@@ -24,6 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   int selectedNavIndex = 3; // Profile is at index 3
   late List<AnimationController> _iconAnimationControllers;
   String userName = 'User'; // Default username
+  File? _avatarImage; // Store selected avatar image
+  final ImagePicker _imagePicker = ImagePicker();
 
   // Helper function for Poppins text style
   TextStyle poppinsStyle({
@@ -45,6 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   void initState() {
     super.initState();
     _loadUserName(); // Load username from Firebase
+    _loadSavedAvatar(); // Load saved avatar
     _iconAnimationControllers = List.generate(
       4,
       (index) => AnimationController(
@@ -59,7 +66,6 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     final user = FirebaseAuth.instance.currentUser;
     
     if (user != null) {
-      // First, try to get displayName from Firebase Auth (this should be instant)
       if (user.displayName != null && user.displayName!.isNotEmpty) {
         setState(() {
           userName = user.displayName!;
@@ -91,12 +97,188 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             }
           }).catchError((error) {
             print('DEBUG: Error fetching from Firestore (profile): $error');
-            // Don't update UI on error, keep default "User"
           });
         });
       }
     } else {
       print('DEBUG: No user logged in (profile), using default "User"');
+    }
+  }
+
+  Future<void> _pickAvatar() async {
+    try {
+      print('DEBUG: Opening image picker...');
+      
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Choose Avatar Source'),
+            content: const Text('Select where to pick your avatar from:'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+                child: const Text('Gallery'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _pickImageFromCamera();
+                },
+                child: const Text('Camera'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      print('DEBUG: Error in _pickAvatar: $e');
+    }
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    try {
+      print('DEBUG: Picking image from gallery...');
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+      );
+      
+      if (pickedFile != null) {
+        _updateAvatarImage(pickedFile);
+      } else {
+        print('DEBUG: User cancelled gallery picker');
+      }
+    } catch (e) {
+      print('DEBUG: Gallery picker error: $e');
+      _showErrorMessage('Gallery Error: $e');
+    }
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    try {
+      print('DEBUG: Picking image from camera...');
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+      );
+      
+      if (pickedFile != null) {
+        _updateAvatarImage(pickedFile);
+      } else {
+        print('DEBUG: User cancelled camera picker');
+      }
+    } catch (e) {
+      print('DEBUG: Camera picker error: $e');
+      _showErrorMessage('Camera Error: $e');
+    }
+  }
+
+  void _updateAvatarImage(XFile pickedFile) {
+    print('DEBUG: Avatar image selected: ${pickedFile.path}');
+    final File imageFile = File(pickedFile.path);
+    
+    setState(() {
+      _avatarImage = imageFile;
+    });
+    
+    // Save avatar path to local storage
+    _saveAvatarPath(imageFile.path);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Avatar updated successfully!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _saveAvatarPath(String imagePath) async {
+    try {
+      print('DEBUG: Starting to save avatar from: $imagePath');
+      
+      final sourceFile = File(imagePath);
+      final sourceExists = await sourceFile.exists();
+      print('DEBUG: Source file exists: $sourceExists');
+      
+      if (!sourceExists) {
+        print('DEBUG: Source file does not exist, cannot save');
+        return;
+      }
+      
+      // Read file bytes
+      final bytes = await sourceFile.readAsBytes();
+      print('DEBUG: Read ${bytes.length} bytes from source file');
+      
+      // Convert bytes to base64
+      final base64String = base64Encode(bytes);
+      print('DEBUG: Converted to base64, length: ${base64String.length}');
+      
+      // Save to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('avatar_base64', base64String);
+      
+      final retrievedBase64 = prefs.getString('avatar_base64');
+      print('DEBUG: Avatar base64 saved, retrieved length: ${retrievedBase64?.length ?? 0}');
+      
+    } catch (e) {
+      print('DEBUG: Error saving avatar path: $e');
+      print('DEBUG: Stack trace: ${e.toString()}');
+    }
+  }
+
+  Future<void> _loadSavedAvatar() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final base64String = prefs.getString('avatar_base64');
+      print('DEBUG: Loading avatar, base64 from preferences, length: ${base64String?.length ?? 0}');
+      
+      if (base64String != null && base64String.isNotEmpty) {
+        try {
+          // Decode base64 to bytes
+          final bytes = base64Decode(base64String);
+          print('DEBUG: Decoded base64 to ${bytes.length} bytes');
+          
+          // Create a temporary file from bytes
+          final tempDir = await Directory.systemTemp.createTemp('flutter_avatar');
+          final avatarFile = File('${tempDir.path}/avatar.png');
+          await avatarFile.writeAsBytes(bytes);
+          
+          if (mounted) {
+            setState(() {
+              _avatarImage = avatarFile;
+            });
+            print('DEBUG: Loaded saved avatar from base64');
+          }
+        } catch (decodeError) {
+          print('DEBUG: Error decoding base64: $decodeError');
+        }
+      } else {
+        print('DEBUG: No saved avatar base64 found in preferences');
+      }
+    } catch (e) {
+      print('DEBUG: Error loading saved avatar: $e');
+      print('DEBUG: Stack trace: ${e.toString()}');
+    }
+  }
+
+  void _showErrorMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -125,24 +307,63 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             child: Column(
               children: [
                 // Profile Avatar
-                Container(
-                  width: isSmallScreen ? 100 : 120,
-                  height: isSmallScreen ? 100 : 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF5DA3FA),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      '👤',
-                      style: TextStyle(fontSize: isSmallScreen ? 50 : 60),
+                GestureDetector(
+                  onTap: _pickAvatar,
+                  child: Container(
+                    width: isSmallScreen ? 100 : 120,
+                    height: isSmallScreen ? 100 : 120,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF5DA3FA),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Avatar image or emoji
+                        if (_avatarImage != null)
+                          ClipOval(
+                            child: Image.file(
+                              _avatarImage!,
+                              fit: BoxFit.cover,
+                              width: isSmallScreen ? 100 : 120,
+                              height: isSmallScreen ? 100 : 120,
+                            ),
+                          )
+                        else
+                          Text(
+                            '👤',
+                            style: TextStyle(fontSize: isSmallScreen ? 50 : 60),
+                          ),
+                        // Camera icon overlay
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD67730),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

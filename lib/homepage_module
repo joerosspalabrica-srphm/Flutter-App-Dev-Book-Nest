@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:io';
+import 'dart:convert';
 import 'posting_module.dart';
 import 'chat_module.dart' show ChatsScreen;
 import 'favorite_module.dart' show FavoritesScreen;
@@ -24,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int selectedNavIndex = 0;
   late List<AnimationController> _iconAnimationControllers;
   String userName = 'User'; // Default username
+  File? _avatarImage; // Store avatar image
 
   final List<String> categories = [
     'All',
@@ -53,6 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _loadUserName(); // Load username from Firebase
+    _loadSavedAvatar(); // Load saved avatar from profile
     _iconAnimationControllers = List.generate(
       4,
       (index) => AnimationController(
@@ -63,11 +68,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _iconAnimationControllers[0].forward();
   }
 
+  Future<void> _loadSavedAvatar() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final base64String = prefs.getString('avatar_base64');
+      
+      if (base64String != null && base64String.isNotEmpty) {
+        try {
+          // Decode base64 to bytes
+          final bytes = base64Decode(base64String);
+          print('DEBUG: Decoded base64 to ${bytes.length} bytes in homepage');
+          
+          // Create a temporary file from bytes
+          final tempDir = await Directory.systemTemp.createTemp('flutter_avatar_hp');
+          final avatarFile = File('${tempDir.path}/avatar.png');
+          await avatarFile.writeAsBytes(bytes);
+          
+          if (mounted) {
+            setState(() {
+              _avatarImage = avatarFile;
+            });
+            print('DEBUG: Loaded saved avatar from base64 in homepage');
+          }
+        } catch (decodeError) {
+          print('DEBUG: Error decoding base64 in homepage: $decodeError');
+        }
+      }
+    } catch (e) {
+      print('DEBUG: Error loading saved avatar in homepage: $e');
+    }
+  }
+
   void _loadUserName() {
     final user = FirebaseAuth.instance.currentUser;
     
     if (user != null) {
-      // First, try to get displayName from Firebase Auth (this should be instant)
       if (user.displayName != null && user.displayName!.isNotEmpty) {
         setState(() {
           userName = user.displayName!;
@@ -99,7 +134,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             }
           }).catchError((error) {
             print('DEBUG: Error fetching from Firestore: $error');
-            // Don't update UI on error, keep default "User"
           });
         });
       }
@@ -154,6 +188,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           builder: (context) => const ProfileScreen(),
                         ),
                       ).then((_) {
+                        // Reload avatar when coming back from profile
+                        _loadSavedAvatar();
                         // Reset to home when coming back from profile
                         setState(() {
                           selectedNavIndex = 0;
@@ -164,16 +200,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: CircleAvatar(
                       radius: 28,
                       backgroundColor: const Color(0xFF4A90E2),
-                      child: Image.asset(
-                        'assets/avatar.png',
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 32,
-                          );
-                        },
-                      ),
+                      child: _avatarImage != null
+                          ? ClipOval(
+                              child: Image.file(
+                                _avatarImage!,
+                                fit: BoxFit.cover,
+                                width: 56,
+                                height: 56,
+                              ),
+                            )
+                          : Image.asset(
+                              'assets/avatar.png',
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 32,
+                                );
+                              },
+                            ),
                     ),
                   ),
                 ],
