@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   runApp(const MyApp());
@@ -49,6 +51,8 @@ class FormFieldConfig {
   final String? prefix;
   final bool required;
   final String? Function(String?)? validator;
+  final bool isDropdown;
+  final List<String>? dropdownOptions;
 
   FormFieldConfig({
     required this.label,
@@ -59,6 +63,8 @@ class FormFieldConfig {
     this.prefix,
     this.required = true,
     this.validator,
+    this.isDropdown = false,
+    this.dropdownOptions,
   });
 }
 
@@ -91,6 +97,8 @@ class _BookPostingFormState extends State<BookPostingForm> {
           label: 'Book Genre/Category',
           key: 'genre',
           icon: Icons.local_library_rounded,
+          isDropdown: true,
+          dropdownOptions: ['Education', 'Fiction', 'Non - Fiction', 'Mystery'],
         ),
         FormFieldConfig(
           label: 'Author',
@@ -111,6 +119,8 @@ class _BookPostingFormState extends State<BookPostingForm> {
           label: 'Condition',
           key: 'condition',
           icon: Icons.verified_rounded,
+          isDropdown: true,
+          dropdownOptions: ['Brand New', 'Good as New', 'Old (Used)'],
         ),
         FormFieldConfig(
           label: 'Publication Year',
@@ -232,21 +242,82 @@ class _BookPostingFormState extends State<BookPostingForm> {
     }
   }
 
-  void _submitForm() {
-    // All form data is now in _formData map
-    print('Form submitted with data: $_formData');
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Book posted successfully!'),
-        backgroundColor: Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+  Future<void> _submitForm() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please login to post books'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
-    // You can now send _formData to your API
-    // Example: await ApiService.postBook(_formData);
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Prepare book data
+      final bookData = {
+        'title': _formData['title'],
+        'genre': _formData['genre'],
+        'author': _formData['author'],
+        'publication': _formData['publication'],
+        'language': _formData['language'],
+        'condition': _formData['condition'],
+        'year': _formData['year'],
+        'publisher': _formData['publisher'],
+        'about': _formData['about'],
+        'penalties': {
+          'lateReturn': double.tryParse(_formData['late_return'] ?? '0') ?? 0.0,
+          'damage': double.tryParse(_formData['damage'] ?? '0') ?? 0.0,
+          'lost': double.tryParse(_formData['lost'] ?? '0') ?? 0.0,
+        },
+        'ownerId': user.uid,
+        'ownerName': user.displayName ?? 'Unknown',
+        'status': 'available', // available, borrowed, unavailable
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // Save to Firestore
+      await FirebaseFirestore.instance.collection('books').add(bookData);
+
+      // Close loading
+      if (mounted) Navigator.of(context).pop();
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Book posted successfully!'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        );
+
+        // Go back to homepage
+        Navigator.of(context).pop();
+      }
+      
+    } catch (e) {
+      // Close loading if open
+      if (mounted) Navigator.of(context).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error posting book: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _previousStep() {
@@ -419,27 +490,64 @@ class _BookPostingFormState extends State<BookPostingForm> {
           ],
         ),
         const SizedBox(height: 8),
-        TextFormField(
-          controller: _controllers[config.key],
-          maxLines: config.maxLines,
-          keyboardType: config.keyboardType,
-          decoration: InputDecoration(
-            prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
-            prefixText: config.prefix,
-            hintText: 'Enter ${config.label}',
-            hintStyle: GoogleFonts.poppins(
-              color: const Color(0xFFD1D5DB),
-              fontSize: 14,
+        if (config.isDropdown && config.dropdownOptions != null)
+          DropdownButtonFormField<String>(
+            value: _formData[config.key],
+            decoration: InputDecoration(
+              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
+              hintText: 'Select ${config.label}',
+              hintStyle: GoogleFonts.poppins(
+                color: const Color(0xFFD1D5DB),
+                fontSize: 14,
+              ),
             ),
-          ),
-          validator: config.validator ??
-              (value) {
-                if (config.required && (value == null || value.isEmpty)) {
-                  return 'Please enter ${config.label}';
+            items: config.dropdownOptions!.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(
+                  value,
+                  style: GoogleFonts.poppins(fontSize: 14),
+                ),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                _formData[config.key] = newValue;
+                if (_controllers[config.key] != null) {
+                  _controllers[config.key]!.text = newValue ?? '';
                 }
-                return null;
-              },
-        ),
+              });
+            },
+            validator: config.validator ??
+                (value) {
+                  if (config.required && (value == null || value.isEmpty)) {
+                    return 'Please select ${config.label}';
+                  }
+                  return null;
+                },
+          )
+        else
+          TextFormField(
+            controller: _controllers[config.key],
+            maxLines: config.maxLines,
+            keyboardType: config.keyboardType,
+            decoration: InputDecoration(
+              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
+              prefixText: config.prefix,
+              hintText: 'Enter ${config.label}',
+              hintStyle: GoogleFonts.poppins(
+                color: const Color(0xFFD1D5DB),
+                fontSize: 14,
+              ),
+            ),
+            validator: config.validator ??
+                (value) {
+                  if (config.required && (value == null || value.isEmpty)) {
+                    return 'Please enter ${config.label}';
+                  }
+                  return null;
+                },
+          ),
       ],
     );
   }

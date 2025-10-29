@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
@@ -38,8 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     Color color = Colors.black,
     double? height,
   }) {
-    return TextStyle(
-      fontFamily: 'Poppins',
+    return GoogleFonts.poppins(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,

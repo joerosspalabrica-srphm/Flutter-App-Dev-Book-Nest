@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'get_started_module.dart' as start;
 
@@ -9,6 +10,18 @@ void main() {
 
 Future<FirebaseApp> _initializeFirebase() async {
   try {
+    if (kIsWeb) {
+      // Web requires explicit Firebase options.
+      // To run on web, you must first run: flutterfire configure
+      // This will generate lib/firebase_options.dart with the proper config
+      throw UnsupportedError(
+        'Web platform requires firebase_options.dart. Run: flutterfire configure'
+      );
+    }
+
+    // For Android/iOS: Use platform-specific configuration files
+    // (google-services.json on Android, GoogleService-Info.plist on iOS)
+    debugPrint('Initializing Firebase using platform-specific config (google-services.json/GoogleService-Info.plist)');
     return await Firebase.initializeApp();
   } catch (e) {
     debugPrint('Firebase Init Error: $e');
@@ -28,6 +41,7 @@ class AppEntry extends StatelessWidget {
           final error = snapshot.error.toString();
           debugPrint('Firebase Init Error (caught in builder): $error');
           return MaterialApp(
+            theme: ThemeData(fontFamily: 'Poppins'),
             home: Scaffold(
               body: Center(
                 child: SingleChildScrollView(
@@ -44,8 +58,9 @@ class AppEntry extends StatelessWidget {
 					return const start.MyApp();
 				}
 
-				return const MaterialApp(
-					home: Scaffold(
+				return MaterialApp(
+					theme: ThemeData(fontFamily: 'Poppins'),
+					home: const Scaffold(
 						body: Center(child: CircularProgressIndicator()),
 					),
 				);
