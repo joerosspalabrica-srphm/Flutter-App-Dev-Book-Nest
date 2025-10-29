@@ -83,9 +83,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
-    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

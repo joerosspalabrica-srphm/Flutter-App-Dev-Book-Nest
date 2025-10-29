@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart'; // Commented out to avoid network errors
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 // Import the login / register module so we can navigate to the Register screen
 import 'sign-up_and_log-in_module.dart';
@@ -11,8 +11,7 @@ TextStyle poppinsStyle({
   Color color = Colors.black,
   double? height,
 }) {
-  return TextStyle(
-    fontFamily: 'Poppins',
+  return GoogleFonts.poppins(
     fontSize: fontSize,
     fontWeight: fontWeight,
     color: color,
@@ -32,6 +31,7 @@ class MyApp extends StatelessWidget {
       title: 'Book Nest',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        textTheme: GoogleFonts.poppinsTextTheme(),
       ),
       home: const BookNestScreen(),
       debugShowCheckedModeBanner: false,
