@@ -14,6 +14,7 @@ import 'my-postings_module.dart' show PostingsScreen;
 import 'about_us.dart' show AboutBookNestScreen;
 import 'logout_module.dart';
 import 'delete-account_module.dart';
+import 'edit-profile_module.dart' show ProfileLoginScreen;
 
 // Note: main() is in main.dart, not here
 // This module provides the ProfileScreen UI
@@ -400,7 +401,20 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       _buildMenuItem(
                         icon: Icons.person_outline,
                         title: 'Edit Profile',
-                        onTap: () {},
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileLoginScreen(),
+                            ),
+                          );
+                          // Reload profile if changes were made
+                          if (result == true) {
+                            setState(() {
+                              // This will trigger a rebuild and reload the user data
+                            });
+                          }
+                        },
                         isSmallScreen: isSmallScreen,
                       ),
                       const Divider(height: 30),
