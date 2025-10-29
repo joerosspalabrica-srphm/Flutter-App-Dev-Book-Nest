@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'posting_module.dart';
 import 'book-posted_module.dart';
+import 'book-detail-screen_module.dart';
 import 'chat_module.dart' show ChatsScreen;
 import 'favorite_module.dart' show FavoritesScreen;
 import 'profile_module.dart' show ProfileScreen;
@@ -30,6 +31,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late List<AnimationController> _iconAnimationControllers;
   String userName = 'User'; // Default username
   File? _avatarImage; // Store avatar image
+  final ScrollController _scrollController = ScrollController();
+  bool _isHeaderCollapsed = false;
+  double _headerOpacity = 1.0;
+  double _bannerHeight = 200.0;
 
   final List<String> categories = [
     'All',
@@ -67,6 +72,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     );
     _iconAnimationControllers[0].forward();
+    
+    // Add scroll listener for smooth collapse animation
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    // Calculate scroll position for animations
+    final offset = _scrollController.offset;
+    
+    setState(() {
+      // Header collapses between 0-150px scroll
+      if (offset <= 150) {
+        _isHeaderCollapsed = false;
+        _headerOpacity = 1.0 - (offset / 200);
+        _bannerHeight = 200 - (offset * 0.8);
+      } else {
+        _isHeaderCollapsed = true;
+        _headerOpacity = 0.0;
+        _bannerHeight = 0;
+      }
+    });
   }
 
   Future<void> _loadSavedAvatar() async {
@@ -148,294 +174,337 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Header Section
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome,',
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 18,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w400,
+            CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+            // Collapsible Header Section
+            SliverToBoxAdapter(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                child: Column(
+                  children: [
+                    // Welcome Header
+                    AnimatedOpacity(
+                      opacity: _headerOpacity.clamp(0.0, 1.0),
+                      duration: const Duration(milliseconds: 200),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        height: _headerOpacity > 0.3 ? null : 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Welcome,',
+                                    style: const TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 18,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    userName,
+                                    style: const TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 24,
+                                      color: Color(0xFF003060),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  print('DEBUG: Avatar tapped, navigating to profile');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const ProfileScreen(),
+                                    ),
+                                  ).then((_) {
+                                    // Reload avatar when coming back from profile
+                                    _loadSavedAvatar();
+                                    // Reset to home when coming back from profile
+                                    setState(() {
+                                      selectedNavIndex = 0;
+                                      _iconAnimationControllers[0].forward();
+                                    });
+                                  });
+                                },
+                                child: CircleAvatar(
+                                  radius: 28,
+                                  backgroundColor: const Color(0xFF4A90E2),
+                                  child: _avatarImage != null
+                                      ? ClipOval(
+                                          child: Image.file(
+                                            _avatarImage!,
+                                            fit: BoxFit.cover,
+                                            width: 56,
+                                            height: 56,
+                                          ),
+                                        )
+                                      : Image.asset(
+                                          'assets/avatar.png',
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Icon(
+                                              Icons.person,
+                                              color: Colors.white,
+                                              size: 32,
+                                            );
+                                          },
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        userName,
-                        style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 24,
-                          color: Color(0xFF003060),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      print('DEBUG: Avatar tapped, navigating to profile');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(),
-                        ),
-                      ).then((_) {
-                        // Reload avatar when coming back from profile
-                        _loadSavedAvatar();
-                        // Reset to home when coming back from profile
-                        setState(() {
-                          selectedNavIndex = 0;
-                          _iconAnimationControllers[0].forward();
-                        });
-                      });
-                    },
-                    child: CircleAvatar(
-                      radius: 28,
-                      backgroundColor: const Color(0xFF4A90E2),
-                      child: _avatarImage != null
-                          ? ClipOval(
-                              child: Image.file(
-                                _avatarImage!,
-                                fit: BoxFit.cover,
-                                width: 56,
-                                height: 56,
+                    ),
+
+                    // Homepage Post Image - Collapsible
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      height: _bannerHeight.clamp(0.0, 200.0),
+                      child: _bannerHeight > 20
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  'assets/homepage post.png',
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.image_not_supported,
+                                          size: 50,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             )
-                          : Image.asset(
-                              'assets/avatar.png',
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 32,
-                                );
-                              },
-                            ),
+                          : const SizedBox.shrink(),
                     ),
-                  ),
-                ],
-              ),
-            ),
 
-            // Homepage Post Image
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  'assets/homepage post.png',
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: 50,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    );
-                  },
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
             ),
-
-            const SizedBox(height: 24),
 
             // Section Header and Search
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Row(
+            SliverToBoxAdapter(
+              child: Column(
                 children: [
-                  Text(
-                    'Section',
-                    style: poppinsStyle(
-                      fontSize: 28,
-                      color: const Color(0xFF003060),
-                      fontWeight: FontWeight.bold,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Section',
+                          style: poppinsStyle(
+                            fontSize: 28,
+                            color: const Color(0xFF003060),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const BookPostedScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'View All',
+                            style: poppinsStyle(
+                              fontSize: 14,
+                              color: const Color(0xFFD67730),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const BookPostedScreen(),
+
+                  const SizedBox(height: 16),
+
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD4DCE5),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle: poppinsStyle(
+                            color: Colors.grey,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: Colors.grey[600],
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                         ),
-                      );
-                    },
-                    child: Text(
-                      'View All',
-                      style: poppinsStyle(
-                        fontSize: 14,
-                        color: const Color(0xFFD67730),
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 20),
+
+                  // Category Filters
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: SizedBox(
+                      height: 45,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: categories.length,
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          final isSelected = selectedCategory == category;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = category;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFD67730)
+                                      : const Color(0xFF003060),
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFFD67730)
+                                        : const Color(0xFF003060),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Text(
+                                  category,
+                                  style: poppinsStyle(
+                                    color: Colors.white,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
 
-            const SizedBox(height: 16),
-
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD4DCE5),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: TextField(
-                  controller: searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Search',
-                    hintStyle: poppinsStyle(
-                      color: Colors.grey,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.grey[600],
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Category Filters
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Container(
-                height: 45,
-                color: Colors.white,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final category = categories[index];
-                    final isSelected = selectedCategory == category;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedCategory = category;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFFD67730)
-                                : const Color(0xFF003060),
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: isSelected
-                                  ? const Color(0xFFD67730)
-                                  : const Color(0xFF003060),
-                              width: 2,
-                            ),
-                          ),
-                          child: Text(
-                            category,
-                            style: poppinsStyle(
-                              color: Colors.white,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
             // Books Grid
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('books')
-                      .orderBy('createdAt', descending: true)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('books')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
                         child: Text(
                           'Error loading books',
                           style: poppinsStyle(color: Colors.red),
                         ),
-                      );
-                    }
+                      ),
+                    ),
+                  );
+                }
 
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  );
+                }
 
-                    final books = snapshot.data?.docs ?? [];
-                    
-                    // Filter by category and search
-                    final filteredBooks = books.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final title = (data['title'] ?? '').toString().toLowerCase();
-                      final genre = (data['genre'] ?? '').toString();
-                      
-                      // Filter by search query
-                      if (searchQuery.isNotEmpty && 
-                          !title.contains(searchQuery.toLowerCase())) {
-                        return false;
-                      }
-                      
-                      // Filter by category
-                      if (selectedCategory != 'All' && genre != selectedCategory) {
-                        return false;
-                      }
-                      
-                      return true;
-                    }).toList();
+                final books = snapshot.data?.docs ?? [];
+                
+                // Filter by category and search
+                final filteredBooks = books.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final title = (data['title'] ?? '').toString().toLowerCase();
+                  final genre = (data['genre'] ?? '').toString();
+                  
+                  // Filter by search query
+                  if (searchQuery.isNotEmpty && 
+                      !title.contains(searchQuery.toLowerCase())) {
+                    return false;
+                  }
+                  
+                  // Filter by category
+                  if (selectedCategory != 'All' && genre != selectedCategory) {
+                    return false;
+                  }
+                  
+                  return true;
+                }).toList();
 
-                    if (filteredBooks.isEmpty) {
-                      return Center(
+                if (filteredBooks.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40.0),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -463,78 +532,80 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                           ],
                         ),
-                      );
-                    }
-
-                    return GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.65,
                       ),
-                      itemCount: filteredBooks.length,
-                      itemBuilder: (context, index) {
-                        final book = filteredBooks[index].data() as Map<String, dynamic>;
-                        return _buildBookCard(book);
+                    ),
+                  );
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  sliver: SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.65,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final doc = filteredBooks[index];
+                        final book = doc.data() as Map<String, dynamic>;
+                        final bookId = doc.id;
+                        return _buildBookCard(book, bookId);
                       },
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            // Add Book Button
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Navigate to posting module
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const BookPostingForm(),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD67730),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: Text(
-                    'Add a Book here',
-                    style: poppinsStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      childCount: filteredBooks.length,
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
 
-            // Helper Text
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Text(
-                'Add your books to this section to make them\navailable for borrowing.',
-                textAlign: TextAlign.center,
-                style: poppinsStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  height: 1.4,
-                ),
-              ),
+            // Add spacing at bottom for the fixed button
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 80),
             ),
           ],
         ),
-      ),
+
+        // Fixed "Add Book" Button at the bottom - Floating
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 20,
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () {
+                // Navigate to posting module
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BookPostingForm(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD67730),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 4,
+              ),
+              child: Text(
+                'Add a Book here',
+                style: poppinsStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -650,23 +721,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildBookCard(Map<String, dynamic> book) {
+  Widget _buildBookCard(Map<String, dynamic> book, String bookId) {
     final condition = book['condition'] ?? 'Used';
     final isNew = condition.toLowerCase().contains('new');
     final imageUrl = book['imageUrl'] as String?;
     
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookDetailScreen(
+              book: book,
+              bookId: bookId,
+            ),
           ),
-        ],
-      ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -768,6 +851,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -789,6 +873,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     searchController.dispose();
+    _scrollController.dispose();
     for (var controller in _iconAnimationControllers) {
       controller.dispose();
     }
