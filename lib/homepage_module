@@ -653,6 +653,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildBookCard(Map<String, dynamic> book) {
     final condition = book['condition'] ?? 'Used';
     final isNew = condition.toLowerCase().contains('new');
+    final imageUrl = book['imageUrl'] as String?;
     
     return Container(
       decoration: BoxDecoration(
@@ -669,7 +670,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Book Cover (placeholder with genre color)
+          // Book Cover (uploaded image or placeholder with genre color)
           Container(
             height: 140,
             decoration: BoxDecoration(
@@ -679,13 +680,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 topRight: Radius.circular(12),
               ),
             ),
-            child: Center(
-              child: Icon(
-                Icons.menu_book,
-                size: 60,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
+            child: imageUrl != null && imageUrl.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                    child: Image.memory(
+                      base64Decode(imageUrl),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Icon(
+                            Icons.menu_book,
+                            size: 60,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                : Center(
+                    child: Icon(
+                      Icons.menu_book,
+                      size: 60,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
           ),
           
           Expanded(

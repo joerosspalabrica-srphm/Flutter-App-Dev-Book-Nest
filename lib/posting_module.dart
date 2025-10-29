@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:convert';
 
 void main() {
   runApp(const MyApp());
@@ -78,6 +81,9 @@ class BookPostingForm extends StatefulWidget {
 class _BookPostingFormState extends State<BookPostingForm> {
   int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _imagePicker = ImagePicker();
+  File? _bookImage;
+  String? _bookImageBase64;
   
   // Dynamic form data storage
   final Map<String, TextEditingController> _controllers = {};
@@ -273,6 +279,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
         'year': _formData['year'],
         'publisher': _formData['publisher'],
         'about': _formData['about'],
+        'imageUrl': _bookImageBase64, // Store image as base64
         'penalties': {
           'lateReturn': double.tryParse(_formData['late_return'] ?? '0') ?? 0.0,
           'damage': double.tryParse(_formData['damage'] ?? '0') ?? 0.0,
@@ -450,6 +457,11 @@ class _BookPostingFormState extends State<BookPostingForm> {
             ),
             const SizedBox(height: 24),
           ],
+          // Image Upload Section (only on first step)
+          if (_currentStep == 0) ...[
+            _buildImageUploadSection(),
+            const SizedBox(height: 20),
+          ],
           ...List.generate(
             fields.length,
             (index) => Column(
@@ -550,6 +562,148 @@ class _BookPostingFormState extends State<BookPostingForm> {
           ),
       ],
     );
+  }
+
+  Widget _buildImageUploadSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Book Cover Image',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFE5E7EB),
+                width: 2,
+                style: BorderStyle.solid,
+              ),
+            ),
+            child: _bookImage != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      _bookImage!,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF003060).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add_photo_alternate_rounded,
+                          size: 48,
+                          color: Color(0xFF003060),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Tap to upload book cover',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: const Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'JPG, PNG (Max 5MB)',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: const Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        if (_bookImage != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _bookImage = null;
+                    _bookImageBase64 = null;
+                  });
+                },
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: Text(
+                  'Remove Image',
+                  style: GoogleFonts.poppins(fontSize: 12),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final File imageFile = File(image.path);
+        final bytes = await imageFile.readAsBytes();
+        
+        // Check file size (5MB limit)
+        if (bytes.length > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Image size should be less than 5MB'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        setState(() {
+          _bookImage = imageFile;
+          _bookImageBase64 = base64Encode(bytes);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildStepIndicators() {

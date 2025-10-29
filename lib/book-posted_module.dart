@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
 class BookPostedScreen extends StatefulWidget {
   const BookPostedScreen({Key? key}) : super(key: key);
@@ -317,6 +318,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
   Widget _buildBookCard(Map<String, dynamic> book, String bookId) {
     final condition = book['condition'] ?? 'Used';
     final isNew = condition.toLowerCase().contains('new');
+    final imageUrl = book['imageUrl'] as String?;
     
     return GestureDetector(
       onTap: () {
@@ -337,7 +339,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Book Cover (placeholder with genre color)
+            // Book Cover (uploaded image or placeholder with genre color)
             Container(
               height: 140,
               decoration: BoxDecoration(
@@ -347,13 +349,34 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                   topRight: Radius.circular(12),
                 ),
               ),
-              child: Center(
-                child: Icon(
-                  Icons.menu_book,
-                  size: 60,
-                  color: Colors.white.withOpacity(0.8),
-                ),
-              ),
+              child: imageUrl != null && imageUrl.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                      child: Image.memory(
+                        base64Decode(imageUrl),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Icon(
+                              Icons.menu_book,
+                              size: 60,
+                              color: Colors.white.withOpacity(0.8),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Center(
+                      child: Icon(
+                        Icons.menu_book,
+                        size: 60,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
             ),
             
             Expanded(
@@ -469,6 +492,23 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                       ),
                     ),
                   ),
+                  
+                  // Book Cover Image
+                  if (book['imageUrl'] != null && (book['imageUrl'] as String).isNotEmpty) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(
+                        base64Decode(book['imageUrl']),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 250,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   
                   // Book Title
                   Text(
