@@ -330,18 +330,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildPenaltyItem(
-                      'Late Return:',
-                      '₱${widget.book['penalties']?['lateReturn'] ?? 0}',
-                    ),
-                    _buildPenaltyItem(
-                      'Book Damage:',
-                      '₱${widget.book['penalties']?['damage'] ?? 0}',
-                    ),
-                    _buildPenaltyItem(
-                      'Lost or Unreturned:',
-                      '₱${widget.book['penalties']?['lost'] ?? 0}',
-                    ),
+                      _buildPenaltyItem(
+                        'Late Return:',
+                        'Php ${widget.book['penalties']?['lateReturn'] ?? 0}',
+                      ),
+                      _buildPenaltyItem(
+                        'Book Damage:',
+                        'Php ${widget.book['penalties']?['damage'] ?? 0}',
+                      ),
+                      _buildPenaltyItem(
+                        'Lost or Unreturned:',
+                        'Php ${widget.book['penalties']?['lost'] ?? 0}',
+                      ),
                   ],
                 ),
               ),

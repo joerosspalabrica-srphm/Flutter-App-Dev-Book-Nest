@@ -24,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+  double _lastOffset = 0;
   String selectedCategory = 'All';
   String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
@@ -80,17 +81,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _onScroll() {
     // Calculate scroll position for animations
     final offset = _scrollController.offset;
-    
+    final isScrollingUp = offset < _lastOffset;
+    _lastOffset = offset;
+
     setState(() {
-      // Header collapses between 0-150px scroll
-      if (offset <= 150) {
+      // If scrolling up, restore header
+      if (isScrollingUp && offset < 150) {
         _isHeaderCollapsed = false;
         _headerOpacity = 1.0 - (offset / 200);
         _bannerHeight = 200 - (offset * 0.8);
-      } else {
+      } else if (!isScrollingUp && offset > 150) {
         _isHeaderCollapsed = true;
         _headerOpacity = 0.0;
         _bannerHeight = 0;
+      } else if (offset <= 150) {
+        _isHeaderCollapsed = false;
+        _headerOpacity = 1.0 - (offset / 200);
+        _bannerHeight = 200 - (offset * 0.8);
       }
     });
   }
