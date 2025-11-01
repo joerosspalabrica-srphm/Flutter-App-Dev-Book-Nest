@@ -56,6 +56,7 @@ class FormFieldConfig {
   final String? Function(String?)? validator;
   final bool isDropdown;
   final List<String>? dropdownOptions;
+  final bool isDatePicker;
 
   FormFieldConfig({
     required this.label,
@@ -68,6 +69,7 @@ class FormFieldConfig {
     this.validator,
     this.isDropdown = false,
     this.dropdownOptions,
+    this.isDatePicker = false,
   });
 }
 
@@ -129,16 +131,36 @@ class _BookPostingFormState extends State<BookPostingForm> {
           dropdownOptions: ['Brand New', 'Good as New', 'Old (Used)'],
         ),
         FormFieldConfig(
-          label: 'Publication Year',
+          label: 'Publication Date',
           key: 'year',
           icon: Icons.event_rounded,
-          keyboardType: TextInputType.number,
+          keyboardType: TextInputType.datetime,
+          isDatePicker: true,
           validator: (value) {
-            if (value == null || value.isEmpty) return 'Please enter Publication Year';
-            final year = int.tryParse(value);
-            if (year == null) return 'Please enter a valid year';
-            if (year < 1000 || year > DateTime.now().year) {
-              return 'Please enter a valid year';
+            if (value == null || value.isEmpty) return 'Please enter Publication Date';
+            // Validate format MM/dd/yyyy
+            final dateRegex = RegExp(r'^\d{2}/\d{2}/\d{4}$');
+            if (!dateRegex.hasMatch(value)) {
+              return 'Please enter date in format MM/dd/yyyy';
+            }
+            try {
+              final parts = value.split('/');
+              final month = int.parse(parts[0]);
+              final day = int.parse(parts[1]);
+              final year = int.parse(parts[2]);
+              
+              if (month < 1 || month > 12) return 'Invalid month';
+              if (day < 1 || day > 31) return 'Invalid day';
+              if (year < 1000 || year > DateTime.now().year) {
+                return 'Year must be between 1000 and ${DateTime.now().year}';
+              }
+              
+              final date = DateTime(year, month, day);
+              if (date.isAfter(DateTime.now())) {
+                return 'Date cannot be in the future';
+              }
+            } catch (e) {
+              return 'Invalid date';
             }
             return null;
           },
@@ -538,6 +560,29 @@ class _BookPostingFormState extends State<BookPostingForm> {
                   return null;
                 },
           )
+        else if (config.isDatePicker)
+          TextFormField(
+            controller: _controllers[config.key],
+            readOnly: true,
+            keyboardType: config.keyboardType,
+            decoration: InputDecoration(
+              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
+              suffixIcon: const Icon(Icons.calendar_today, color: Color(0xFF6B7280), size: 18),
+              hintText: 'MM/dd/yyyy',
+              hintStyle: GoogleFonts.poppins(
+                color: const Color(0xFFD1D5DB),
+                fontSize: 14,
+              ),
+            ),
+            onTap: () => _selectDate(context, config.key),
+            validator: config.validator ??
+                (value) {
+                  if (config.required && (value == null || value.isEmpty)) {
+                    return 'Please enter ${config.label}';
+                  }
+                  return null;
+                },
+          )
         else
           TextFormField(
             controller: _controllers[config.key],
@@ -703,6 +748,45 @@ class _BookPostingFormState extends State<BookPostingForm> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context, String fieldKey) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1000),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF003060), // Header background color
+              onPrimary: Colors.white, // Header text color
+              onSurface: Color(0xFF003060), // Body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF003060), // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      // Format date as MM/dd/yyyy
+      final formattedDate = 
+          '${pickedDate.month.toString().padLeft(2, '0')}/'
+          '${pickedDate.day.toString().padLeft(2, '0')}/'
+          '${pickedDate.year}';
+      
+      setState(() {
+        _controllers[fieldKey]!.text = formattedDate;
+        _formData[fieldKey] = formattedDate;
+      });
     }
   }
 
