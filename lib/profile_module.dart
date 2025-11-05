@@ -206,6 +206,12 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     try {
       print('DEBUG: Starting to save avatar from: $imagePath');
       
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('DEBUG: No user logged in, cannot save avatar');
+        return;
+      }
+      
       final sourceFile = File(imagePath);
       final sourceExists = await sourceFile.exists();
       print('DEBUG: Source file exists: $sourceExists');
@@ -223,12 +229,13 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       final base64String = base64Encode(bytes);
       print('DEBUG: Converted to base64, length: ${base64String.length}');
       
-      // Save to SharedPreferences
+      // Save to SharedPreferences with user-specific key
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('avatar_base64', base64String);
+      final avatarKey = 'avatar_base64_${user.uid}';
+      await prefs.setString(avatarKey, base64String);
       
-      final retrievedBase64 = prefs.getString('avatar_base64');
-      print('DEBUG: Avatar base64 saved, retrieved length: ${retrievedBase64?.length ?? 0}');
+      final retrievedBase64 = prefs.getString(avatarKey);
+      print('DEBUG: Avatar base64 saved for user ${user.uid}, retrieved length: ${retrievedBase64?.length ?? 0}');
       
     } catch (e) {
       print('DEBUG: Error saving avatar path: $e');
@@ -238,9 +245,16 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
 
   Future<void> _loadSavedAvatar() async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('DEBUG: No user logged in, cannot load avatar');
+        return;
+      }
+      
       final prefs = await SharedPreferences.getInstance();
-      final base64String = prefs.getString('avatar_base64');
-      print('DEBUG: Loading avatar, base64 from preferences, length: ${base64String?.length ?? 0}');
+      final avatarKey = 'avatar_base64_${user.uid}';
+      final base64String = prefs.getString(avatarKey);
+      print('DEBUG: Loading avatar for user ${user.uid}, base64 from preferences, length: ${base64String?.length ?? 0}');
       
       if (base64String != null && base64String.isNotEmpty) {
         try {
