@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class ProfileLoginScreen extends StatefulWidget {
   const ProfileLoginScreen({Key? key}) : super(key: key);
@@ -48,16 +48,16 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Load username from Firestore
+      // Load username from Realtime Database
       try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+        final snapshot = await FirebaseDatabase.instance
+            .ref('users/${user.uid}')
+            .once();
         
-        if (doc.exists) {
+        if (snapshot.snapshot.exists) {
+          final data = snapshot.snapshot.value as Map?;
           setState(() {
-            usernameController.text = doc.data()?['name'] ?? user.displayName ?? '';
+            usernameController.text = data?['username'] ?? data?['name'] ?? user.displayName ?? '';
             _originalName = usernameController.text;
           });
         } else {
@@ -152,11 +152,11 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
       // Update display name
       await user.updateDisplayName(usernameController.text.trim());
 
-      // Update Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
+      // Update Realtime Database
+      await FirebaseDatabase.instance
+          .ref('users/${user.uid}')
           .update({
+        'username': usernameController.text.trim(),
         'name': usernameController.text.trim(),
       });
 

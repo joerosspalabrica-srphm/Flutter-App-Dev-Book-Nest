@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'dart:async';
 import 'get_started_module.dart';
 
@@ -89,16 +89,15 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       await user.reauthenticateWithCredential(credential);
       print('DEBUG: User re-authenticated successfully');
 
-      // Delete user data from Firestore
+      // Delete user data from Realtime Database
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .delete();
-        print('DEBUG: User data deleted from Firestore');
+        await FirebaseDatabase.instance
+            .ref('users/${user.uid}')
+            .remove();
+        print('DEBUG: User data deleted from Realtime Database');
       } catch (e) {
-        print('DEBUG: Error deleting Firestore data: $e');
-        // Continue even if Firestore deletion fails
+        print('DEBUG: Error deleting Realtime Database data: $e');
+        // Continue even if database deletion fails
       }
 
       // Delete the user account

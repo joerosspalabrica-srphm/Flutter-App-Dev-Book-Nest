@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -290,18 +290,26 @@ class _BookPostingFormState extends State<BookPostingForm> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // Prepare book data
+      print('DEBUG: Starting book submission...');
+      final database = FirebaseDatabase.instance;
+      print('DEBUG: Database URL: ${database.databaseURL}');
+      
+      final booksRef = database.ref('books');
+      final newBookRef = booksRef.push();
+      print('DEBUG: Generated book ID: ${newBookRef.key}');
+
       final bookData = {
-        'title': _formData['title'],
-        'genre': _formData['genre'],
-        'author': _formData['author'],
-        'publication': _formData['publication'],
-        'language': _formData['language'],
-        'condition': _formData['condition'],
-        'year': _formData['year'],
-        'publisher': _formData['publisher'],
-        'about': _formData['about'],
-        'imageUrl': _bookImageBase64, // Store image as base64
+        'id': newBookRef.key,
+        'title': _formData['title'] ?? '',
+        'genre': _formData['genre'] ?? '',
+        'author': _formData['author'] ?? '',
+        'publication': _formData['publication'] ?? '',
+        'language': _formData['language'] ?? '',
+        'condition': _formData['condition'] ?? '',
+        'year': _formData['year'] ?? '',
+        'publisher': _formData['publisher'] ?? '',
+        'about': _formData['about'] ?? '',
+        'imageUrl': _bookImageBase64 ?? '',
         'penalties': {
           'lateReturn': double.tryParse(_formData['late_return'] ?? '0') ?? 0.0,
           'damage': double.tryParse(_formData['damage'] ?? '0') ?? 0.0,
@@ -309,12 +317,14 @@ class _BookPostingFormState extends State<BookPostingForm> {
         },
         'ownerId': user.uid,
         'ownerName': user.displayName ?? 'Unknown',
-        'status': 'available', // available, borrowed, unavailable
-        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'available',
+        'createdAt': ServerValue.timestamp,
+        'createdAtLocal': DateTime.now().toIso8601String(),
       };
 
-      // Save to Firestore
-      await FirebaseFirestore.instance.collection('books').add(bookData);
+      print('DEBUG: Attempting to write book data...');
+      await newBookRef.set(bookData);
+      print('DEBUG: Book data written successfully!');
 
       // Close loading
       if (mounted) Navigator.of(context).pop();

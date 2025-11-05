@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
@@ -143,32 +143,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         });
         print('DEBUG: Loaded username from Firebase Auth: $userName');
       } else {
-        print('DEBUG: No displayName in Auth, will fetch from Firestore asynchronously');
-        
-        // If displayName is empty, fetch from Firestore in the background (non-blocking)
-        Future.microtask(() {
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get()
-              .timeout(const Duration(seconds: 5), onTimeout: () {
-            print('DEBUG: Firestore fetch timed out');
-            throw TimeoutException('Firestore timeout', const Duration(seconds: 5));
-          })
-              .then((docSnapshot) {
-            if (docSnapshot.exists && docSnapshot['username'] != null) {
+        print('DEBUG: No displayName in Auth, will fetch from Realtime Database asynchronously');
+
+        Future.microtask(() async {
+          try {
+            final userRef = FirebaseDatabase.instance.ref('users/${user.uid}/username');
+            final snapshot = await userRef
+                .get()
+                .timeout(const Duration(seconds: 5), onTimeout: () {
+              print('DEBUG: Realtime Database fetch timed out');
+              throw TimeoutException('Realtime Database timeout', const Duration(seconds: 5));
+            });
+
+            if (snapshot.exists && snapshot.value != null) {
               if (mounted) {
                 setState(() {
-                  userName = docSnapshot['username'];
+                  userName = snapshot.value.toString();
                 });
-                print('DEBUG: Loaded username from Firestore: $userName');
+                print('DEBUG: Loaded username from Realtime Database: $userName');
               }
             } else {
-              print('DEBUG: No username in Firestore, using default "User"');
+              print('DEBUG: No username in Realtime Database, using default "User"');
             }
-          }).catchError((error) {
-            print('DEBUG: Error fetching from Firestore: $error');
-          });
+          } catch (error) {
+            print('DEBUG: Error fetching from Realtime Database: $error');
+          }
         });
       }
     } else {
@@ -454,11 +453,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
 
             // Books Grid
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('books')
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
+            StreamBuilder<DatabaseEvent>(
+              stream: FirebaseDatabase.instance
+                  .ref('books')
+                  .orderByChild('createdAt')
+                  .onValue,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return SliverToBoxAdapter(
@@ -485,25 +484,53 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   );
                 }
 
-                final books = snapshot.data?.docs ?? [];
-                
-                // Filter by category and search
-                final filteredBooks = books.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final title = (data['title'] ?? '').toString().toLowerCase();
-                  final genre = (data['genre'] ?? '').toString();
+                final event = snapshot.data;
+                final dataSnapshot = event?.snapshot;
+                final books = <Map<String, dynamic>>[];
+
+                if (dataSnapshot != null && dataSnapshot.value != null) {
+                  final value = dataSnapshot.value;
+                  if (value is Map) {
+                    value.forEach((key, dynamic rawBook) {
+                      if (rawBook is Map) {
+                        final bookMap = Map<String, dynamic>.from(rawBook);
+                        bookMap['id'] = key.toString();
+                        if (bookMap['penalties'] is Map) {
+                          bookMap['penalties'] = Map<String, dynamic>.from(
+                            bookMap['penalties'] as Map,
+                          );
+                        }
+                        books.add(bookMap);
+                      }
+                    });
+                  }
+                }
+
+                books.sort((a, b) {
+                  final aCreated = (a['createdAt'] ?? 0);
+                  final bCreated = (b['createdAt'] ?? 0);
+                  final aValue = aCreated is num ? aCreated.toInt() : 0;
+                  final bValue = bCreated is num ? bCreated.toInt() : 0;
+                  return bValue.compareTo(aValue);
+                });
+
+                final filteredBooks = books.where((book) {
+                  final title = (book['title'] ?? '').toString().toLowerCase();
+                  final genre = (book['genre'] ?? '').toString();
                   
-                  // Filter by search query
-                  if (searchQuery.isNotEmpty && 
+                  // Debug logging
+                  print('DEBUG Filter - Book: ${book['title']}, Genre: "$genre", Selected: "$selectedCategory"');
+
+                  if (searchQuery.isNotEmpty &&
                       !title.contains(searchQuery.toLowerCase())) {
                     return false;
                   }
-                  
-                  // Filter by category
+
                   if (selectedCategory != 'All' && genre != selectedCategory) {
+                    print('DEBUG Filter - FILTERED OUT: "$genre" != "$selectedCategory"');
                     return false;
                   }
-                  
+
                   return true;
                 }).toList();
 
@@ -555,9 +582,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
-                        final doc = filteredBooks[index];
-                        final book = doc.data() as Map<String, dynamic>;
-                        final bookId = doc.id;
+                        final book = filteredBooks[index];
+                        final bookId = (book['id'] ?? '').toString();
                         return _buildBookCard(book, bookId);
                       },
                       childCount: filteredBooks.length,

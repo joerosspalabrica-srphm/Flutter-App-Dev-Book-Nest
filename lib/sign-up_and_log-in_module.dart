@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'homepage_module' as homepage;
 
@@ -524,19 +524,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
           await userCredential.user!.reload();
           print('DEBUG: Display name updated to: $name');
           
-          // Also save to Firestore as backup (non-blocking)
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .set({
-            'username': name,
-            'email': email,
-            'uid': userCredential.user!.uid,
-            'createdAt': FieldValue.serverTimestamp(),
-          }).catchError((error) {
-            // Log but don't block
-            print('DEBUG: Firestore save error (non-blocking): $error');
-          });
+          // Also save to Realtime Database as backup (non-blocking)
+          try {
+            final userRef = FirebaseDatabase.instance.ref('users/${userCredential.user!.uid}');
+            await userRef.set({
+              'username': name,
+              'email': email,
+              'uid': userCredential.user!.uid,
+              'createdAt': ServerValue.timestamp,
+            });
+            print('DEBUG: User saved in Realtime Database');
+          } catch (databaseError) {
+            print('DEBUG: Realtime Database save error (non-blocking): $databaseError');
+          }
           
           // Verify the display name was saved
           final updatedUser = FirebaseAuth.instance.currentUser;

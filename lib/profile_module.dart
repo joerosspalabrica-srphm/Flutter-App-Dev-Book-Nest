@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -73,32 +73,31 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         });
         print('DEBUG: Loaded profile username from Firebase Auth: $userName');
       } else {
-        print('DEBUG: No displayName in Auth (profile), will fetch from Firestore asynchronously');
+        print('DEBUG: No displayName in Auth (profile), will fetch from Realtime Database asynchronously');
         
-        // If displayName is empty, fetch from Firestore in the background (non-blocking)
-        Future.microtask(() {
-          FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get()
-              .timeout(const Duration(seconds: 5), onTimeout: () {
-            print('DEBUG: Firestore fetch timed out (profile)');
-            throw TimeoutException('Firestore timeout', const Duration(seconds: 5));
-          })
-              .then((docSnapshot) {
-            if (docSnapshot.exists && docSnapshot['username'] != null) {
+        Future.microtask(() async {
+          try {
+            final userRef = FirebaseDatabase.instance.ref('users/${user.uid}/username');
+            final snapshot = await userRef
+                .get()
+                .timeout(const Duration(seconds: 5), onTimeout: () {
+              print('DEBUG: Realtime Database fetch timed out (profile)');
+              throw TimeoutException('Realtime Database timeout', const Duration(seconds: 5));
+            });
+
+            if (snapshot.exists && snapshot.value != null) {
               if (mounted) {
                 setState(() {
-                  userName = docSnapshot['username'];
+                  userName = snapshot.value.toString();
                 });
-                print('DEBUG: Loaded profile username from Firestore: $userName');
+                print('DEBUG: Loaded profile username from Realtime Database: $userName');
               }
             } else {
-              print('DEBUG: No username in Firestore (profile), using default "User"');
+              print('DEBUG: No username in Realtime Database (profile), using default "User"');
             }
-          }).catchError((error) {
-            print('DEBUG: Error fetching from Firestore (profile): $error');
-          });
+          } catch (error) {
+            print('DEBUG: Error fetching from Realtime Database (profile): $error');
+          }
         });
       }
     } else {

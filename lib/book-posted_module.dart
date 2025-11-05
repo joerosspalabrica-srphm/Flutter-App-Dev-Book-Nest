@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
 
 class BookPostedScreen extends StatefulWidget {
@@ -169,11 +169,11 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('books')
-                      .orderBy('createdAt', descending: true)
-                      .snapshots(),
+                child: StreamBuilder<DatabaseEvent>(
+                  stream: FirebaseDatabase.instance
+                      .ref('books')
+                      .orderByChild('createdAt')
+                      .onValue,
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -188,14 +188,41 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    final books = snapshot.data?.docs ?? [];
-                    
+                    final event = snapshot.data;
+                    final dataSnapshot = event?.snapshot;
+                    final books = <Map<String, dynamic>>[];
+
+                    if (dataSnapshot != null && dataSnapshot.value != null) {
+                      final value = dataSnapshot.value;
+                      if (value is Map) {
+                        value.forEach((key, dynamic rawBook) {
+                          if (rawBook is Map) {
+                            final bookMap = Map<String, dynamic>.from(rawBook);
+                            bookMap['id'] = key.toString();
+                            if (bookMap['penalties'] is Map) {
+                              bookMap['penalties'] = Map<String, dynamic>.from(
+                                bookMap['penalties'] as Map,
+                              );
+                            }
+                            books.add(bookMap);
+                          }
+                        });
+                      }
+                    }
+
+                    books.sort((a, b) {
+                      final aCreated = (a['createdAt'] ?? 0);
+                      final bCreated = (b['createdAt'] ?? 0);
+                      final aValue = aCreated is num ? aCreated.toInt() : 0;
+                      final bValue = bCreated is num ? bCreated.toInt() : 0;
+                      return bValue.compareTo(aValue);
+                    });
+
                     // Filter by category and search
-                    final filteredBooks = books.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final title = (data['title'] ?? '').toString().toLowerCase();
-                      final genre = (data['genre'] ?? '').toString();
-                      
+                    final filteredBooks = books.where((book) {
+                      final title = (book['title'] ?? '').toString().toLowerCase();
+                      final genre = (book['genre'] ?? '').toString();
+
                       // Filter by search query
                       if (searchQuery.isNotEmpty && 
                           !title.contains(searchQuery.toLowerCase())) {
@@ -253,9 +280,9 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                       ),
                       itemCount: filteredBooks.length,
                       itemBuilder: (context, index) {
-                        final bookDoc = filteredBooks[index];
-                        final book = bookDoc.data() as Map<String, dynamic>;
-                        return _buildBookCard(book, bookDoc.id);
+                        final book = filteredBooks[index];
+                        final bookId = (book['id'] ?? '').toString();
+                        return _buildBookCard(book, bookId);
                       },
                     );
                   },
