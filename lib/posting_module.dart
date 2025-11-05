@@ -117,6 +117,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           label: 'Publication',
           key: 'publication',
           icon: Icons.apartment_rounded,
+          required: false,
         ),
         FormFieldConfig(
           label: 'Language',
@@ -136,12 +137,13 @@ class _BookPostingFormState extends State<BookPostingForm> {
           icon: Icons.event_rounded,
           keyboardType: TextInputType.datetime,
           isDatePicker: true,
+          required: false,
           validator: (value) {
-            if (value == null || value.isEmpty) return 'Please enter Publication Date';
-            // Validate format MM/dd/yyyy
+            if (value == null || value.isEmpty) return null; // Optional field
+            // Validate format mm/dd/yyyy
             final dateRegex = RegExp(r'^\d{2}/\d{2}/\d{4}$');
             if (!dateRegex.hasMatch(value)) {
-              return 'Please enter date in format MM/dd/yyyy';
+              return 'Please enter date in format mm/dd/yyyy';
             }
             try {
               final parts = value.split('/');
@@ -169,6 +171,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           label: 'Publisher',
           key: 'publisher',
           icon: Icons.domain_rounded,
+          required: false,
         ),
         FormFieldConfig(
           label: 'About',
@@ -578,7 +581,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
             decoration: InputDecoration(
               prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
               suffixIcon: const Icon(Icons.calendar_today, color: Color(0xFF6B7280), size: 18),
-              hintText: 'MM/dd/yyyy',
+              hintText: 'mm/dd/yyyy',
               hintStyle: GoogleFonts.poppins(
                 color: const Color(0xFFD1D5DB),
                 fontSize: 14,
