@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'dart:convert';
 import 'homepage_module' show HomeScreen;
 import 'chat_module.dart' show ChatsScreen;
 import 'profile_module.dart' show ProfileScreen;
+import 'book-detail-screen_module.dart' show BookDetailScreen;
 
 void main() {
   runApp(const MyApp());
@@ -25,18 +29,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class Book {
-  final String title;
-  final String coverUrl;
-  final String category;
-
-  Book({
-    required this.title,
-    required this.coverUrl,
-    required this.category,
-  });
-}
-
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({Key? key}) : super(key: key);
 
@@ -50,14 +42,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
   int selectedNavIndex = 1; // Bookmarks tab selected by default
   late List<AnimationController> _iconAnimationControllers;
   
-  // Empty favorites list - change this to add books
-  final List<Book> favorites = [];
+  List<Map<String, dynamic>> _favorites = [];
+  bool _isLoading = true;
 
-  List<Book> get filteredFavorites {
+  List<Map<String, dynamic>> get filteredFavorites {
     if (selectedCategory == 'All') {
-      return favorites;
+      return _favorites;
     }
-    return favorites.where((book) => book.category == selectedCategory).toList();
+    return _favorites.where((book) => book['genre'] == selectedCategory).toList();
   }
 
   @override
@@ -71,6 +63,65 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
       ),
     );
     _iconAnimationControllers[1].forward(); // Bookmarks icon selected by default
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('favorites/${user.uid}')
+          .once();
+
+      if (snapshot.snapshot.exists) {
+        final data = snapshot.snapshot.value as Map?;
+        if (data != null) {
+          final List<Map<String, dynamic>> loadedFavorites = [];
+          
+          data.forEach((key, value) {
+            if (value is Map) {
+              final bookData = Map<String, dynamic>.from(value);
+              bookData['id'] = key; // Store the bookId
+              loadedFavorites.add(bookData);
+            }
+          });
+
+          // Sort by addedAt timestamp (newest first)
+          loadedFavorites.sort((a, b) {
+            final aTime = a['addedAt'] ?? 0;
+            final bTime = b['addedAt'] ?? 0;
+            return bTime.compareTo(aTime);
+          });
+
+          if (mounted) {
+            setState(() {
+              _favorites = loadedFavorites;
+              _isLoading = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading favorites: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -252,6 +303,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
   }
 
   Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFFD67730),
+        ),
+      );
+    }
+    
     if (filteredFavorites.isEmpty) {
       return _buildEmptyState();
     }
@@ -308,49 +367,87 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildBookCard(Book book) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Image.network(
-                book.coverUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey.shade300,
-                    child: const Icon(Icons.book, size: 50),
-                  );
-                },
-              ),
+  Widget _buildBookCard(Map<String, dynamic> book) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to book detail screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookDetailScreen(
+              book: book,
+              bookId: book['bookId'] ?? book['id'] ?? '',
             ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                book.title,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+          ),
+        ).then((_) {
+          // Reload favorites when returning from detail screen
+          _loadFavorites();
+        });
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: book['imageUrl'] != null && (book['imageUrl'] as String).isNotEmpty
+                    ? Image.memory(
+                        base64Decode(book['imageUrl']),
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey.shade300,
+                            child: const Icon(Icons.book, size: 50, color: Colors.grey),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.book, size: 50, color: Colors.grey),
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      book['title'] ?? 'Untitled',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF003060),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      book['author'] ?? 'Unknown Author',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

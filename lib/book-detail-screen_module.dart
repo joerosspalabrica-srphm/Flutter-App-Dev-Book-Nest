@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
 
 class BookDetailScreen extends StatefulWidget {
@@ -19,6 +20,102 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfFavorite();
+  }
+
+  Future<void> _checkIfFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('favorites/${user.uid}/${widget.bookId}')
+          .once();
+      
+      if (mounted) {
+        setState(() {
+          _isFavorite = snapshot.snapshot.exists;
+        });
+      }
+    } catch (e) {
+      print('Error checking favorite status: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to add favorites')),
+      );
+      return;
+    }
+
+    try {
+      final favRef = FirebaseDatabase.instance.ref('favorites/${user.uid}/${widget.bookId}');
+      
+      if (_isFavorite) {
+        // Remove from favorites
+        await favRef.remove();
+        setState(() {
+          _isFavorite = false;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Removed from favorites',
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: const Color(0xFF003060),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }
+      } else {
+        // Add to favorites
+        await favRef.set({
+          'bookId': widget.bookId,
+          'title': widget.book['title'] ?? '',
+          'genre': widget.book['genre'] ?? '',
+          'author': widget.book['author'] ?? '',
+          'imageUrl': widget.book['imageUrl'] ?? '',
+          'ownerId': widget.book['ownerId'] ?? '',
+          'ownerName': widget.book['ownerName'] ?? '',
+          'addedAt': ServerValue.timestamp,
+        });
+        
+        setState(() {
+          _isFavorite = true;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Added to favorites!',
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: const Color(0xFFD67730),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error toggling favorite: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,41 +269,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     const SizedBox(width: 12),
                     // Favorite Icon
                     InkWell(
-                      onTap: () {
-                        setState(() {
-                          _isFavorite = !_isFavorite;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                Icon(
-                                  _isFavorite ? Icons.favorite : Icons.favorite_border,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _isFavorite 
-                                    ? 'Added to favorites!' 
-                                    : 'Removed from favorites',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            duration: const Duration(seconds: 2),
-                            backgroundColor: const Color(0xFFD67730),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
-                      },
+                      onTap: _toggleFavorite,
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
