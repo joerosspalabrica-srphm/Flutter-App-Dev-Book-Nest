@@ -423,9 +423,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                           );
                           // Reload profile if changes were made
                           if (result == true) {
-                            setState(() {
-                              // This will trigger a rebuild and reload the user data
-                            });
+                            _loadUserName(); // Reload username
+                            _loadSavedAvatar(); // Reload avatar
                           }
                         },
                         isSmallScreen: isSmallScreen,

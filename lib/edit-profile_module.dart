@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'dart:convert';
 
 class ProfileLoginScreen extends StatefulWidget {
   const ProfileLoginScreen({Key? key}) : super(key: key);
@@ -29,11 +32,15 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   // Animation controller for success
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  
+  // Avatar
+  File? _avatarImage;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadSavedAvatar();
     
     // Initialize animation
     _animationController = AnimationController(
@@ -43,6 +50,44 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
+  }
+
+  Future<void> _loadSavedAvatar() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('DEBUG: No user logged in, cannot load avatar in edit profile');
+        return;
+      }
+      
+      final prefs = await SharedPreferences.getInstance();
+      final avatarKey = 'avatar_base64_${user.uid}';
+      final base64String = prefs.getString(avatarKey);
+      
+      if (base64String != null && base64String.isNotEmpty) {
+        try {
+          // Decode base64 to bytes
+          final bytes = base64Decode(base64String);
+          print('DEBUG: Decoded base64 to ${bytes.length} bytes in edit profile');
+          
+          // Create a temporary file from bytes
+          final tempDir = await Directory.systemTemp.createTemp('flutter_avatar_edit');
+          final avatarFile = File('${tempDir.path}/avatar.png');
+          await avatarFile.writeAsBytes(bytes);
+          
+          if (mounted) {
+            setState(() {
+              _avatarImage = avatarFile;
+            });
+            print('DEBUG: Loaded saved avatar from base64 in edit profile');
+          }
+        } catch (decodeError) {
+          print('DEBUG: Error decoding base64 in edit profile: $decodeError');
+        }
+      }
+    } catch (e) {
+      print('DEBUG: Error loading saved avatar in edit profile: $e');
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -305,22 +350,30 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                 Container(
                   width: 100,
                   height: 100,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF5BA3E0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5BA3E0),
                     shape: BoxShape.circle,
+                    image: _avatarImage != null
+                        ? DecorationImage(
+                            image: FileImage(_avatarImage!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: Center(
-                    child: Text(
-                      (usernameController.text.isNotEmpty 
-                          ? usernameController.text[0] 
-                          : user?.email?[0] ?? 'U').toUpperCase(),
-                      style: GoogleFonts.poppins(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  child: _avatarImage == null
+                      ? Center(
+                          child: Text(
+                            (usernameController.text.isNotEmpty 
+                                ? usernameController.text[0] 
+                                : user?.email?[0] ?? 'U').toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
                 Positioned(
                   right: 0,
