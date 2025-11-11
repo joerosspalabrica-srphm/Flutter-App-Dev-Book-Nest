@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'dart:convert';
 import 'profile_module.dart' show ProfileScreen;
+import 'book-detail-screen_module.dart' show BookDetailScreen;
 
 void main() {
   runApp(const MyApp());
@@ -36,12 +40,86 @@ class _PostingsScreenState extends State<PostingsScreen> {
   final List<String> categories = [
     'All',
     'Education',
-    'Non-Fiction',
+    'Non - Fiction',
     'Mystery',
     'Fiction',
   ];
 
-  final List<Map<String, String>> books = [];
+  List<Map<String, dynamic>> _myBooks = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyPostings();
+  }
+
+  Future<void> _loadMyPostings() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('books')
+          .orderByChild('ownerId')
+          .equalTo(user.uid)
+          .once();
+
+      if (snapshot.snapshot.exists) {
+        final data = snapshot.snapshot.value as Map?;
+        if (data != null) {
+          final List<Map<String, dynamic>> loadedBooks = [];
+          
+          data.forEach((key, value) {
+            if (value is Map) {
+              final bookData = Map<String, dynamic>.from(value);
+              bookData['id'] = key; // Store the bookId
+              loadedBooks.add(bookData);
+            }
+          });
+
+          // Sort by createdAt timestamp (newest first)
+          loadedBooks.sort((a, b) {
+            final aTime = a['createdAt'] ?? 0;
+            final bTime = b['createdAt'] ?? 0;
+            return bTime.compareTo(aTime);
+          });
+
+          if (mounted) {
+            setState(() {
+              _myBooks = loadedBooks;
+              _isLoading = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading my postings: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> get filteredBooks {
+    if (selectedCategory == 'All') {
+      return _myBooks;
+    }
+    return _myBooks.where((book) => book['genre'] == selectedCategory).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,59 +238,69 @@ class _PostingsScreenState extends State<PostingsScreen> {
 
             // Books Grid or Empty State
             Expanded(
-              child: books.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.library_books_outlined,
-                            size: 80,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'You have no postings',
-                            style: GoogleFonts.poppins(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 48),
-                            child: Text(
-                              'Start posting books to share with others',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFD67730),
                       ),
                     )
-                  : Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: size.width * 0.05,
-                        vertical: 20,
-                      ),
-                      child: GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.65,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
+                  : filteredBooks.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.library_books_outlined,
+                                size: 80,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                selectedCategory == 'All'
+                                    ? 'You have no postings'
+                                    : 'No books in $selectedCategory',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 48),
+                                child: Text(
+                                  selectedCategory == 'All'
+                                      ? 'Start posting books to share with others'
+                                      : 'You haven\'t posted any books in this category yet',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: size.width * 0.05,
+                            vertical: 20,
+                          ),
+                          child: GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.65,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                            ),
+                            itemCount: filteredBooks.length,
+                            itemBuilder: (context, index) {
+                              return _buildBookCard(filteredBooks[index]);
+                            },
+                          ),
                         ),
-                        itemCount: books.length,
-                        itemBuilder: (context, index) {
-                          return _buildBookCard(books[index]);
-                        },
-                      ),
-                    ),
             ),
           ],
         ),
@@ -220,67 +308,109 @@ class _PostingsScreenState extends State<PostingsScreen> {
     );
   }
 
-  Widget _buildBookCard(Map<String, String> book) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.network(
-              book['image']!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Icon(
-                    Icons.book,
-                    size: 50,
-                    color: Colors.grey,
-                  ),
-                );
-              },
+  Widget _buildBookCard(Map<String, dynamic> book) {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to book detail screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookDetailScreen(
+              book: book,
+              bookId: book['id'] ?? '',
             ),
-            // Gradient overlay for better text visibility
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.7),
-                      Colors.transparent,
+          ),
+        ).then((_) {
+          // Reload postings when returning from detail screen
+          _loadMyPostings();
+        });
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              book['imageUrl'] != null && (book['imageUrl'] as String).isNotEmpty
+                  ? Image.memory(
+                      base64Decode(book['imageUrl']),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: const Icon(
+                            Icons.book,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: Colors.grey[300],
+                      child: const Icon(
+                        Icons.book,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
+                    ),
+              // Gradient overlay for better text visibility
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.7),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        book['title'] ?? 'Untitled',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        book['genre'] ?? 'Unknown Genre',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.white70,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
-                child: Text(
-                  book['title']!,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
