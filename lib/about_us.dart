@@ -146,6 +146,77 @@ class AboutBookNestScreen extends StatelessWidget {
                 ),
                 
                 SizedBox(height: isMobile ? 20 : 30),
+                
+                // Developers Section
+                Container(
+                  width: double.infinity,
+                  constraints: BoxConstraints(maxWidth: containerMaxWidth),
+                  padding: EdgeInsets.all(isMobile ? 20 : (isTablet ? 30 : 40)),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Developers',
+                        style: GoogleFonts.poppins(
+                          fontSize: titleFontSize,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF003060),
+                        ),
+                      ),
+                      SizedBox(height: isMobile ? 16 : 20),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            color: const Color(0xFFD67730),
+                            size: isMobile ? 20 : 24,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Joeross Palabrica',
+                            style: GoogleFonts.poppins(
+                              fontSize: bodyFontSize,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF003060),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: isMobile ? 12 : 16),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            color: const Color(0xFFD67730),
+                            size: isMobile ? 20 : 24,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Michelle Joy Juanico',
+                            style: GoogleFonts.poppins(
+                              fontSize: bodyFontSize,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF003060),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                SizedBox(height: isMobile ? 20 : 30),
               ],
             ),
           ),

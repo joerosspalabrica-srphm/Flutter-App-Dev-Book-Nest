@@ -812,7 +812,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             Container(
               padding: EdgeInsets.all(iconContainerPadding),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(

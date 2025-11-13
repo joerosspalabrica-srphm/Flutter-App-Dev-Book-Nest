@@ -24,7 +24,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  double _lastOffset = 0;
   String selectedCategory = 'All';
   String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
@@ -33,9 +32,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String userName = 'User'; // Default username
   File? _avatarImage; // Store avatar image
   final ScrollController _scrollController = ScrollController();
-  bool _isHeaderCollapsed = false;
-  double _headerOpacity = 1.0;
-  double _bannerHeight = 200.0;
   int _unreadCount = 0;
 
   final List<String> categories = [
@@ -75,33 +71,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     );
     _iconAnimationControllers[0].forward();
-    
-    // Add scroll listener for smooth collapse animation
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    // Calculate scroll position for animations
-    final offset = _scrollController.offset;
-    final isScrollingUp = offset < _lastOffset;
-    _lastOffset = offset;
-
-    setState(() {
-      // If scrolling up, restore header
-      if (isScrollingUp && offset < 150) {
-        _isHeaderCollapsed = false;
-        _headerOpacity = 1.0 - (offset / 200);
-        _bannerHeight = 200 - (offset * 0.8);
-      } else if (!isScrollingUp && offset > 150) {
-        _isHeaderCollapsed = true;
-        _headerOpacity = 0.0;
-        _bannerHeight = 0;
-      } else if (offset <= 150) {
-        _isHeaderCollapsed = false;
-        _headerOpacity = 1.0 - (offset / 200);
-        _bannerHeight = 200 - (offset * 0.8);
-      }
-    });
   }
 
   Future<void> _loadSavedAvatar() async {
@@ -262,13 +231,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     // Welcome Header
-                    AnimatedOpacity(
-                      opacity: _headerOpacity.clamp(0.0, 1.0),
-                      duration: const Duration(milliseconds: 200),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: _headerOpacity > 0.3 ? null : 0,
-                        child: Padding(
+                    Padding(
                           padding: EdgeInsets.all(horizontalPadding),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,15 +305,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ],
                           ),
                         ),
-                      ),
-                    ),
 
-                    // Homepage Post Image - Collapsible
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      height: _bannerHeight.clamp(0.0, maxBannerHeight),
-                      child: _bannerHeight > 20
-                          ? Padding(
+                    // Homepage Post Image
+                    Container(
+                      height: maxBannerHeight,
+                      child: Padding(
                               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
@@ -375,8 +334,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   },
                                 ),
                               ),
-                            )
-                          : const SizedBox.shrink(),
+                            ),
                     ),
 
                     SizedBox(height: spacing),

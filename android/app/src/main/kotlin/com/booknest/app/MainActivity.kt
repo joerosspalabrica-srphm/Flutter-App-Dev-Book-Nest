@@ -1,4 +1,4 @@
-package com.example.demo_app
+package com.booknest.app
 
 import io.flutter.embedding.android.FlutterActivity
 
