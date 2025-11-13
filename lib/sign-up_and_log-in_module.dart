@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'homepage_module' as homepage;
+import 'forgot_password_module.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -341,39 +342,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.mail_outline,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          'Password reset requested',
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    duration: const Duration(seconds: 2),
-                                    backgroundColor: const Color(0xFF003060),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    margin: const EdgeInsets.all(16),
-                                  ),
-                                );
+                                ForgotPasswordModule.showForgotPasswordDialog(context);
                               },
                               child: Text(
                                 'Forgot Your Password?',
                                 style: poppinsStyle(
-                                  color: Colors.grey.shade600,
+                                  color: const Color(0xFF003366),
                                   fontSize: linkFontSize,
                                 ),
                               ),
@@ -1032,7 +1006,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(
-                              labelText: 'User Name',
+                              labelText: 'Name',
                               labelStyle: poppinsStyle(
                                 fontSize: labelFontSize,
                                 color: Colors.grey.shade600,
