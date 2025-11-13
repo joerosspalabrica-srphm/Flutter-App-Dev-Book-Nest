@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'get_started_module.dart';
 
 class LogoutModule {
@@ -32,8 +33,7 @@ class LogoutModule {
           backgroundColor: Colors.white,
           title: Text(
             'Log Out',
-            style: TextStyle(
-              fontFamily: 'Poppins',
+            style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
               color: Color(0xFF003060),
               fontSize: titleFontSize,
@@ -41,8 +41,7 @@ class LogoutModule {
           ),
           content: Text(
             'Are you sure you want to log out?',
-            style: TextStyle(
-              fontFamily: 'Poppins',
+            style: GoogleFonts.poppins(
               fontSize: contentFontSize,
               color: Colors.grey,
             ),
@@ -60,8 +59,7 @@ class LogoutModule {
               ),
               child: Text(
                 'No',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+                style: GoogleFonts.poppins(
                   color: Colors.grey,
                   fontSize: buttonFontSize,
                   fontWeight: FontWeight.w600,
@@ -115,8 +113,7 @@ class LogoutModule {
               ),
               child: Text(
                 'Yes',
-                style: TextStyle(
-                  fontFamily: 'Poppins',
+                style: GoogleFonts.poppins(
                   fontSize: buttonFontSize,
                   fontWeight: FontWeight.w600,
                 ),
