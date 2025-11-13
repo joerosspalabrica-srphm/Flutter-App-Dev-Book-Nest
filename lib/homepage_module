@@ -892,34 +892,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 topRight: Radius.circular(12),
               ),
             ),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                    child: Image.memory(
-                      base64Decode(imageUrl),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Icon(
-                            Icons.menu_book,
-                            size: coverIconSize,
-                            color: Colors.white.withOpacity(0.8),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageUrl != null && imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                        child: Image.memory(
+                          base64Decode(imageUrl),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Icon(
+                                Icons.menu_book,
+                                size: coverIconSize,
+                                color: Colors.white.withOpacity(0.8),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          Icons.menu_book,
+                          size: coverIconSize,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
+                // Status watermark overlay
+                if (book['status'] == 'borrowed' || book['status'] == 'reserved')
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                      ),
+                      child: Center(
+                        child: Transform.rotate(
+                          angle: -0.3,
+                          child: Text(
+                            book['status'] == 'borrowed' ? 'BORROWED' : 'RESERVED',
+                            style: GoogleFonts.poppins(
+                              fontSize: isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0),
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white.withOpacity(0.9),
+                              letterSpacing: 1.5,
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                  )
-                : Center(
-                    child: Icon(
-                      Icons.menu_book,
-                      size: coverIconSize,
-                      color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
                     ),
                   ),
+              ],
+            ),
           ),
           
           Expanded(

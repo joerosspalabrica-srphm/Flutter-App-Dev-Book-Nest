@@ -213,17 +213,46 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(16),
-                              child: widget.book['imageUrl'] != null && (widget.book['imageUrl'] as String).isNotEmpty
-                                  ? Image.memory(
-                                      base64Decode(widget.book['imageUrl']),
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return _buildDefaultBookCover();
-                                      },
-                                    )
-                                  : _buildDefaultBookCover(),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  widget.book['imageUrl'] != null && (widget.book['imageUrl'] as String).isNotEmpty
+                                      ? Image.memory(
+                                          base64Decode(widget.book['imageUrl']),
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return _buildDefaultBookCover();
+                                          },
+                                        )
+                                      : _buildDefaultBookCover(),
+                                  // Status watermark overlay
+                                  if (widget.book['status'] == 'borrowed' || widget.book['status'] == 'reserved')
+                                    Positioned.fill(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Center(
+                                          child: Transform.rotate(
+                                            angle: -0.3,
+                                            child: Text(
+                                              widget.book['status'] == 'borrowed' ? 'BORROWED' : 'RESERVED',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: isSmallMobile ? 24.0 : (isMobile ? 28.0 : 32.0),
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white.withOpacity(0.9),
+                                                letterSpacing: 2.0,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

@@ -401,6 +401,37 @@ class _PostingsScreenState extends State<PostingsScreen> {
                         color: Colors.grey,
                       ),
                     ),
+              // Status watermark (if borrowed or reserved)
+              if (book['status'] == 'borrowed' || book['status'] == 'reserved')
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    color: Colors.black.withOpacity(0.4),
+                    child: Center(
+                      child: Transform.rotate(
+                        angle: -0.3,
+                        child: Text(
+                          book['status'] == 'borrowed' ? 'BORROWED' : 'RESERVED',
+                          style: GoogleFonts.poppins(
+                            fontSize: isSmallMobile ? 18.0 : (isMobile ? 20.0 : 22.0),
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white.withOpacity(0.9),
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // Action buttons at top
+              Positioned(
+                top: overlayPadding,
+                right: overlayPadding,
+                child: _buildActionMenu(book, isSmallMobile, isMobile),
+              ),
               // Gradient overlay for better text visibility
               Positioned(
                 bottom: 0,
@@ -451,5 +482,268 @@ class _PostingsScreenState extends State<PostingsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildActionMenu(Map<String, dynamic> book, bool isSmallMobile, bool isMobile) {
+    final iconSize = isSmallMobile ? 24.0 : (isMobile ? 26.0 : 28.0);
+    
+    return PopupMenuButton<String>(
+      icon: Container(
+        padding: EdgeInsets.all(isSmallMobile ? 4.0 : 6.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.more_vert,
+          color: const Color(0xFF003060),
+          size: iconSize * 0.7,
+        ),
+      ),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 8,
+      offset: const Offset(0, 8),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'borrowed',
+          child: Row(
+            children: [
+              Icon(
+                Icons.book_outlined,
+                color: const Color(0xFF003060),
+                size: iconSize * 0.8,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Mark as Borrowed',
+                style: GoogleFonts.poppins(
+                  fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                  color: const Color(0xFF003060),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'reserved',
+          child: Row(
+            children: [
+              Icon(
+                Icons.bookmark_outline,
+                color: const Color(0xFFD67730),
+                size: iconSize * 0.8,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Mark as Reserved',
+                style: GoogleFonts.poppins(
+                  fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                  color: const Color(0xFF003060),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'available',
+          child: Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                color: Colors.green,
+                size: iconSize * 0.8,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Mark as Available',
+                style: GoogleFonts.poppins(
+                  fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                  color: const Color(0xFF003060),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: iconSize * 0.8,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Delete Book',
+                style: GoogleFonts.poppins(
+                  fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                  color: Colors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      onSelected: (value) => _handleAction(value, book),
+    );
+  }
+
+  Future<void> _handleAction(String action, Map<String, dynamic> book) async {
+    final bookId = book['id'];
+    if (bookId == null) return;
+
+    if (action == 'delete') {
+      // Show confirmation dialog for delete
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Delete Book',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF003060),
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${book['title']}"? This action cannot be undone.',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.poppins(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                'Delete',
+                style: GoogleFonts.poppins(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        await _deleteBook(bookId);
+      }
+    } else {
+      // Update status (borrowed, reserved, or available)
+      await _updateBookStatus(bookId, action);
+    }
+  }
+
+  Future<void> _deleteBook(String bookId) async {
+    try {
+      await FirebaseDatabase.instance.ref('books/$bookId').remove();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Book deleted successfully',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: const Color(0xFF003060),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        
+        // Reload postings
+        _loadMyPostings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to delete book: $e',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateBookStatus(String bookId, String status) async {
+    try {
+      await FirebaseDatabase.instance.ref('books/$bookId').update({
+        'status': status,
+      });
+      
+      if (mounted) {
+        String message = 'Book marked as ${status == 'available' ? 'available' : status}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              message,
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: const Color(0xFFD67730),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        
+        // Reload postings
+        _loadMyPostings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to update book status: $e',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
   }
 }
