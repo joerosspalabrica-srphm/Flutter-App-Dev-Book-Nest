@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
+import 'message_module.dart' show ChatScreen;
 
 class BookDetailScreen extends StatefulWidget {
   final Map<String, dynamic> book;
@@ -25,6 +26,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void initState() {
     super.initState();
     _checkIfFavorite();
+  }
+  
+  // Generate a consistent chat ID for two users
+  String _generateChatId(String userId1, String userId2) {
+    final ids = [userId1, userId2]..sort();
+    return '${ids[0]}_${ids[1]}';
   }
 
   Future<void> _checkIfFavorite() async {
@@ -494,34 +501,108 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                       ),
                       if (!isOwner)
                         InkWell(
-                          onTap: () {
-                            // Navigate to chat with owner
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.info_outline,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'Chat feature coming soon!',
-                                      style: GoogleFonts.poppins(
+                          onTap: () async {
+                            final currentUser = FirebaseAuth.instance.currentUser;
+                            if (currentUser == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline,
                                         color: Colors.white,
-                                        fontWeight: FontWeight.w500,
+                                        size: 20,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Please log in to send messages',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                  backgroundColor: const Color(0xFF003060),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
                                 ),
-                                duration: const Duration(seconds: 2),
-                                backgroundColor: const Color(0xFFD67730),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                              );
+                              return;
+                            }
+                            
+                            // Get owner's UID - try multiple possible field names
+                            final ownerUid = widget.book['ownerId'] ?? widget.book['uid'] ?? widget.book['userId'];
+                            if (ownerUid == null || ownerUid.toString().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Owner information not available',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                  backgroundColor: const Color(0xFF003060),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
                                 ),
-                                margin: const EdgeInsets.all(16),
+                              );
+                              return;
+                            }
+                            
+                            // Create or get chat ID
+                            final chatId = _generateChatId(currentUser.uid, ownerUid);
+                            
+                            // Get owner's name - try multiple possible field names
+                            String ownerName = widget.book['ownerName'] ?? widget.book['username'] ?? widget.book['name'] ?? 'Book Owner';
+                            
+                            // Create chat metadata in Firebase
+                            final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
+                            await chatRef.set({
+                              'participants': {
+                                currentUser.uid: true,
+                                ownerUid: true,
+                              },
+                              'participantNames': {
+                                currentUser.uid: currentUser.displayName ?? 'User',
+                                ownerUid: ownerName,
+                              },
+                              'lastMessage': 'Chat about ${widget.book['title']}',
+                              'lastMessageTime': ServerValue.timestamp,
+                              'bookId': widget.bookId,
+                              'bookTitle': widget.book['title'],
+                            });
+                            
+                            // Navigate to chat screen
+                            if (!context.mounted) return;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(
+                                  chatId: chatId,
+                                  chatName: ownerName,
+                                  isSystemChat: false,
+                                  otherUserId: ownerUid,
+                                ),
                               ),
                             );
                           },

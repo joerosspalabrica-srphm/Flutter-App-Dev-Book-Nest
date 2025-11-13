@@ -32,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   String userName = 'User'; // Default username
   File? _avatarImage; // Store selected avatar image
   final ImagePicker _imagePicker = ImagePicker();
+  int _unreadCount = 0;
 
   // Helper function for Poppins text style
   TextStyle poppinsStyle({
@@ -53,6 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     super.initState();
     _loadUserName(); // Load username from Firebase
     _loadSavedAvatar(); // Load saved avatar
+    _loadUnreadCount(); // Load unread message count
     _iconAnimationControllers = List.generate(
       4,
       (index) => AnimationController(
@@ -619,11 +621,12 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   label: 'Bookmarks',
                 ),
                 BottomNavigationBarItem(
-                  icon: _buildAnimatedIcon(
+                  icon: _buildAnimatedIconWithBadge(
                     Icons.chat_bubble_rounded,
                     Icons.chat_bubble_rounded,
                     2,
                     navIconSize,
+                    _unreadCount,
                   ),
                   label: 'Messages',
                 ),
@@ -642,6 +645,40 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         },
       ),
     );
+  }
+  
+  void _loadUnreadCount() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    
+    // Listen to chats for unread count
+    FirebaseDatabase.instance.ref('chats').onValue.listen((event) {
+      final data = event.snapshot.value;
+      int count = 0;
+      
+      if (data != null && data is Map) {
+        data.forEach((chatId, chatData) {
+          if (chatData is Map && chatData['participants'] != null) {
+            final participants = chatData['participants'] as Map;
+            // Only count chats where current user is a participant
+            if (participants[currentUser.uid] == true) {
+              // Check if current user has unread messages
+              final readStatus = chatData['readBy'] as Map?;
+              final isUnread = readStatus == null || readStatus[currentUser.uid] != true;
+              if (isUnread) {
+                count++;
+              }
+            }
+          }
+        });
+      }
+      
+      if (mounted) {
+        setState(() {
+          _unreadCount = count;
+        });
+      }
+    });
   }
 
   Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index, double iconSize) {
@@ -675,6 +712,80 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           ),
         );
       },
+    );
+  }
+  
+  Widget _buildAnimatedIconWithBadge(IconData outlinedIcon, IconData filledIcon, int index, double iconSize, int badgeCount) {
+    final badgeSize = iconSize * 0.55;
+    final badgeFontSize = iconSize * 0.35;
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        AnimatedBuilder(
+          animation: _iconAnimationControllers[index],
+          builder: (context, child) {
+            final animation = _iconAnimationControllers[index];
+            final isSelected = selectedNavIndex == index;
+            
+            // Elastic bounce curve for scale
+            final scaleValue = isSelected 
+                ? 1.0 + (Curves.elasticOut.transform(animation.value) * 0.25)
+                : 1.0 - (animation.value * 0.1);
+            
+            // Subtle rotation for dynamic effect
+            final rotationValue = isSelected
+                ? (Curves.easeOutBack.transform(animation.value) * 0.1) - 0.05
+                : 0.0;
+            
+            return Transform.rotate(
+              angle: rotationValue,
+              child: Transform.scale(
+                scale: scaleValue,
+                child: Icon(
+                  selectedNavIndex == index ? filledIcon : outlinedIcon,
+                  size: iconSize,
+                  color: selectedNavIndex == index
+                      ? const Color(0xFFD67730)
+                      : const Color(0xFF003060),
+                ),
+              ),
+            );
+          },
+        ),
+        if (badgeCount > 0)
+          Positioned(
+            right: -6,
+            top: -4,
+            child: Container(
+              padding: EdgeInsets.all(badgeCount > 9 ? 2 : 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD67730),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1.5,
+                ),
+              ),
+              constraints: BoxConstraints(
+                minWidth: badgeSize,
+                minHeight: badgeSize,
+              ),
+              child: Center(
+                child: Text(
+                  badgeCount > 99 ? '99+' : badgeCount.toString(),
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: badgeFontSize,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

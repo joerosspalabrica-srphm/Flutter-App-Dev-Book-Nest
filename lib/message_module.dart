@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,22 +28,28 @@ class Message {
   final String text;
   final bool isUser;
   final DateTime timestamp;
+  bool showDelivered;
 
   Message({
     required this.text,
     required this.isUser,
     required this.timestamp,
+    this.showDelivered = true,
   });
 }
 
 class ChatScreen extends StatefulWidget {
+  final String? chatId;
   final String chatName;
   final bool isSystemChat;
+  final String? otherUserId;
 
   const ChatScreen({
     Key? key,
+    this.chatId,
     this.chatName = 'From System',
     this.isSystemChat = true,
+    this.otherUserId,
   }) : super(key: key);
 
   @override
@@ -51,22 +59,83 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Message> _messages = [
-    Message(
-      text: 'Welcome to Book Nest, a mobile application designed to enhance book accessibility among West Visayas State University (WVSU) students through a peer-to-peer lending system. This project addresses challenges faced by students in finding academic or leisure reading materials due to limited library resources and the lack of organized ways to borrow books from each other. Book Nest aims to create a structured and technology-driven solution that promotes collaboration, resource sharing, and community engagement within the university.',
-      isUser: false,
-      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-    ),
-  ];
+  List<Message> _messages = [];
+  late DatabaseReference _messagesRef;
+  late DatabaseReference _chatRef;
+  
+  @override
+  void initState() {
+    super.initState();
+    _initializeChat();
+  }
+  
+  void _initializeChat() {
+    if (widget.isSystemChat) {
+      // System chat with static messages
+      _messages = [
+        Message(
+          text: 'Welcome to Book Nest, a mobile application designed to enhance book accessibility among West Visayas State University (WVSU) students through a peer-to-peer lending system. This project addresses challenges faced by students in finding academic or leisure reading materials due to limited library resources and the lack of organized ways to borrow books from each other. Book Nest aims to create a structured and technology-driven solution that promotes collaboration, resource sharing, and community engagement within the university.',
+          isUser: false,
+          timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+        ),
+      ];
+    } else if (widget.chatId != null) {
+      // Real chat with Firebase
+      _messagesRef = FirebaseDatabase.instance.ref('chats/${widget.chatId}/messages');
+      _chatRef = FirebaseDatabase.instance.ref('chats/${widget.chatId}');
+      _loadMessages();
+    }
+  }
+  
+  void _loadMessages() {
+    _messagesRef.onValue.listen((event) {
+      final data = event.snapshot.value;
+      if (data != null && data is Map) {
+        final List<Message> loadedMessages = [];
+        data.forEach((key, value) {
+          if (value is Map) {
+            final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+            loadedMessages.add(Message(
+              text: value['text'] ?? '',
+              isUser: value['senderId'] == currentUserId,
+              timestamp: DateTime.fromMillisecondsSinceEpoch(value['timestamp'] ?? 0),
+            ));
+          }
+        });
+        loadedMessages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        if (mounted) {
+          setState(() {
+            _messages = loadedMessages;
+          });
+          _scrollToBottom();
+        }
+      }
+    });
+  }
+  
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
+
+    final messageText = _messageController.text.trim();
+    _messageController.clear();
 
     // If this is a system chat, show auto-reply
     if (widget.isSystemChat) {
       setState(() {
         _messages.add(Message(
-          text: _messageController.text,
+          text: messageText,
           isUser: true,
           timestamp: DateTime.now(),
         ));
@@ -78,28 +147,36 @@ class _ChatScreenState extends State<ChatScreen> {
           timestamp: DateTime.now(),
         ));
       });
-    } else {
-      setState(() {
-        _messages.add(Message(
-          text: _messageController.text,
-          isUser: true,
-          timestamp: DateTime.now(),
-        ));
+      _scrollToBottom();
+    } else if (widget.chatId != null) {
+      // Send to Firebase
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+      
+      final messageData = {
+        'text': messageText,
+        'senderId': currentUser.uid,
+        'timestamp': ServerValue.timestamp,
+      };
+      
+      await _messagesRef.push().set(messageData);
+      
+      // Update last message in chat metadata and mark as unread for recipient
+      await _chatRef.update({
+        'lastMessage': messageText,
+        'lastMessageTime': ServerValue.timestamp,
+        'readBy/${currentUser.uid}': true, // Keep as read for sender
       });
-    }
-
-    _messageController.clear();
-    
-    // Scroll to bottom after sending
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+      
+      // Mark as unread for the other user
+      if (widget.otherUserId != null) {
+        await _chatRef.update({
+          'readBy/${widget.otherUserId}': false,
+        });
       }
-    });
+      
+      _scrollToBottom();
+    }
   }
 
   @override
@@ -234,6 +311,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final bubblePaddingV = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
     final bubbleRadius = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
     final textFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 15.0);
+    final deliveredFontSize = isSmallMobile ? 10.0 : (isMobile ? 10.5 : 11.0);
     
     return Padding(
       padding: EdgeInsets.only(bottom: bubbleSpacing),
@@ -263,33 +341,59 @@ class _ChatScreenState extends State<ChatScreen> {
             SizedBox(width: avatarSpacing),
           ],
           Flexible(
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: bubblePaddingH, vertical: bubblePaddingV),
-              decoration: BoxDecoration(
-                color: message.isUser
-                    ? const Color(0xFF003060)
-                    : const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(bubbleRadius),
-                  topRight: Radius.circular(bubbleRadius),
-                  bottomLeft: Radius.circular(message.isUser ? bubbleRadius : 4),
-                  bottomRight: Radius.circular(message.isUser ? 4 : bubbleRadius),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+            child: GestureDetector(
+              onTap: message.isUser ? () {
+                setState(() {
+                  message.showDelivered = !message.showDelivered;
+                });
+              } : null,
+              child: Column(
+                crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: bubblePaddingH, vertical: bubblePaddingV),
+                    decoration: BoxDecoration(
+                      color: message.isUser
+                          ? const Color(0xFF003060)
+                          : const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(bubbleRadius),
+                        topRight: Radius.circular(bubbleRadius),
+                        bottomLeft: Radius.circular(message.isUser ? bubbleRadius : 4),
+                        bottomRight: Radius.circular(message.isUser ? 4 : bubbleRadius),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      message.text,
+                      style: GoogleFonts.poppins(
+                        fontSize: textFontSize,
+                        color: message.isUser ? Colors.white : Colors.black87,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
+                  if (message.isUser && message.showDelivered) ...[
+                    SizedBox(height: 4),
+                    Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: Text(
+                        'Delivered',
+                        style: GoogleFonts.poppins(
+                          fontSize: deliveredFontSize,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ),
-              child: Text(
-                message.text,
-                style: GoogleFonts.poppins(
-                  fontSize: textFontSize,
-                  color: message.isUser ? Colors.white : Colors.black87,
-                  height: 1.4,
-                ),
               ),
             ),
           ),

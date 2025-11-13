@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'message_module.dart' show ChatScreen;
 import 'homepage_module' show HomeScreen;
 import 'favorite_module.dart' show FavoritesScreen;
@@ -37,23 +39,14 @@ class ChatsScreen extends StatefulWidget {
 class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   List<ChatItem> _filteredChats = [];
+  List<ChatItem> _allChats = [];
   int selectedNavIndex = 2; // Messages tab selected by default
   late List<AnimationController> _iconAnimationControllers;
+  int _unreadCount = 0;
   
-  final List<ChatItem> _allChats = [
-    ChatItem(
-      name: 'From System',
-      message: 'Welcome to Nest Book…',
-      avatarColor: Colors.blue.shade700,
-      initials: 'SY',
-      isSystemChat: true,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
-    _filteredChats = _allChats;
     _iconAnimationControllers = List.generate(
       4,
       (index) => AnimationController(
@@ -62,6 +55,107 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
       ),
     );
     _iconAnimationControllers[2].forward(); // Messages icon selected by default
+    _loadChats();
+  }
+  
+  void _loadChats() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      // Show only system chat if not logged in
+      setState(() {
+        _allChats = [
+          ChatItem(
+            name: 'From System',
+            message: 'Welcome to Book Nest…',
+            avatarColor: Colors.blue.shade700,
+            initials: 'SY',
+            isSystemChat: true,
+            chatId: 'system',
+          ),
+        ];
+        _filteredChats = _allChats;
+      });
+      return;
+    }
+    
+    // Load chats from Firebase
+    FirebaseDatabase.instance.ref('chats').onValue.listen((event) {
+      final data = event.snapshot.value;
+      List<ChatItem> loadedChats = [
+        ChatItem(
+          name: 'From System',
+          message: 'Welcome to Book Nest…',
+          avatarColor: Colors.blue.shade700,
+          initials: 'SY',
+          isSystemChat: true,
+          chatId: 'system',
+        ),
+      ];
+      
+      if (data != null && data is Map) {
+        data.forEach((chatId, chatData) {
+          if (chatData is Map && chatData['participants'] != null) {
+            final participants = chatData['participants'] as Map;
+            // Only show chats where current user is a participant
+            if (participants[currentUser.uid] == true) {
+              // Get the other participant's name
+              String otherUserName = 'User';
+              String? otherUserId;
+              final participantNames = chatData['participantNames'] as Map?;
+              
+              participants.forEach((uid, _) {
+                if (uid != currentUser.uid) {
+                  otherUserId = uid;
+                  if (participantNames != null && participantNames[uid] != null) {
+                    otherUserName = participantNames[uid];
+                  }
+                }
+              });
+              
+              // Check if current user has unread messages
+              final readStatus = chatData['readBy'] as Map?;
+              final isUnread = readStatus == null || readStatus[currentUser.uid] != true;
+              
+              loadedChats.add(ChatItem(
+                name: otherUserName,
+                message: chatData['lastMessage'] ?? 'No messages yet',
+                avatarColor: _generateColorFromString(otherUserName),
+                initials: _getInitials(otherUserName),
+                isSystemChat: false,
+                isUnread: isUnread,
+                chatId: chatId,
+                otherUserId: otherUserId,
+              ));
+            }
+          }
+        });
+      }
+      
+      if (mounted) {
+        setState(() {
+          _allChats = loadedChats;
+          _filteredChats = _allChats;
+          // Count unread messages (excluding system chat)
+          _unreadCount = _allChats.where((chat) => !chat.isSystemChat && chat.isUnread).length;
+        });
+      }
+    });
+  }
+  
+  Color _generateColorFromString(String str) {
+    int hash = 0;
+    for (int i = 0; i < str.length; i++) {
+      hash = str.codeUnitAt(i) + ((hash << 5) - hash);
+    }
+    final hue = (hash % 360).toDouble();
+    return HSLColor.fromAHSL(1.0, hue, 0.6, 0.5).toColor();
+  }
+  
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
   void _filterChats(String query) {
@@ -255,7 +349,7 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
               label: 'Bookmarks',
             ),
             BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(Icons.chat_bubble_rounded, Icons.chat_bubble_rounded, 2, isSmallMobile, isMobile),
+              icon: _buildAnimatedIconWithBadge(Icons.chat_bubble_rounded, Icons.chat_bubble_rounded, 2, isSmallMobile, isMobile, _unreadCount),
               label: 'Messages',
             ),
             BottomNavigationBarItem(
@@ -304,6 +398,82 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
       },
     );
   }
+  
+  Widget _buildAnimatedIconWithBadge(IconData outlinedIcon, IconData filledIcon, int index, bool isSmallMobile, bool isMobile, int badgeCount) {
+    // Responsive sizes
+    final iconSize = isSmallMobile ? 28.0 : (isMobile ? 32.0 : 36.0);
+    final badgeSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final badgeFontSize = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        AnimatedBuilder(
+          animation: _iconAnimationControllers[index],
+          builder: (context, child) {
+            final animation = _iconAnimationControllers[index];
+            final isSelected = selectedNavIndex == index;
+            
+            // Elastic bounce curve for scale
+            final scaleValue = isSelected 
+                ? 1.0 + (Curves.elasticOut.transform(animation.value) * 0.25)
+                : 1.0 - (animation.value * 0.1);
+            
+            // Subtle rotation for dynamic effect
+            final rotationValue = isSelected
+                ? (Curves.easeOutBack.transform(animation.value) * 0.1) - 0.05
+                : 0.0;
+            
+            return Transform.rotate(
+              angle: rotationValue,
+              child: Transform.scale(
+                scale: scaleValue,
+                child: Icon(
+                  selectedNavIndex == index ? filledIcon : outlinedIcon,
+                  size: iconSize,
+                  color: selectedNavIndex == index
+                      ? const Color(0xFFD67730)
+                      : const Color(0xFF003060),
+                ),
+              ),
+            );
+          },
+        ),
+        if (badgeCount > 0)
+          Positioned(
+            right: -6,
+            top: -4,
+            child: Container(
+              padding: EdgeInsets.all(badgeCount > 9 ? 2 : 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD67730),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1.5,
+                ),
+              ),
+              constraints: BoxConstraints(
+                minWidth: badgeSize,
+                minHeight: badgeSize,
+              ),
+              child: Center(
+                child: Text(
+                  badgeCount > 99 ? '99+' : badgeCount.toString(),
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: badgeFontSize,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class ChatTile extends StatelessWidget {
@@ -336,20 +506,30 @@ class ChatTile extends StatelessWidget {
     return Column(
       children: [
         InkWell(
-          onTap: () {
-            // Mark as read and navigate to message module
+          onTap: () async {
+            // Mark as read in Firebase before navigating
+            if (!chat.isSystemChat && chat.chatId != 'system') {
+              final currentUser = FirebaseAuth.instance.currentUser;
+              if (currentUser != null) {
+                await FirebaseDatabase.instance
+                    .ref('chats/${chat.chatId}/readBy/${currentUser.uid}')
+                    .set(true);
+              }
+            }
+            
+            // Navigate to message module
+            if (!context.mounted) return;
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => ChatScreen(
+                  chatId: chat.chatId,
                   chatName: chat.name,
                   isSystemChat: chat.isSystemChat,
+                  otherUserId: chat.otherUserId,
                 ),
               ),
-            ).then((_) {
-              // Mark as read when returning from message screen
-              chat.isUnread = false;
-            });
+            );
           },
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -462,6 +642,8 @@ class ChatItem {
   final Color avatarColor;
   final String initials;
   final bool isSystemChat;
+  final String chatId;
+  final String? otherUserId;
   bool isUnread;
 
   ChatItem({
@@ -469,6 +651,8 @@ class ChatItem {
     required this.message,
     required this.avatarColor,
     required this.initials,
+    required this.chatId,
+    this.otherUserId,
     this.isSystemChat = false,
     this.isUnread = true,
   });
