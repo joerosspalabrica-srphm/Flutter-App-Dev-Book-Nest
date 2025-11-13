@@ -193,6 +193,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    
+    // Responsive breakpoints
+    final isSmallMobile = size.width < 360;
+    final isMobile = size.width < 600;
+    final isTablet = size.width >= 600 && size.width < 900;
+    
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 32.0 : 40.0));
+    final logoSize = isSmallMobile ? 140.0 : (isMobile ? 160.0 : (isTablet ? 180.0 : 200.0));
+    final logoSpacing = isSmallMobile ? 24.0 : (isMobile ? 32.0 : 40.0);
+    final cardPadding = isSmallMobile ? 20.0 : (isMobile ? 24.0 : (isTablet ? 28.0 : 32.0));
+    final cardMaxWidth = isSmallMobile ? 320.0 : (isMobile ? 380.0 : (isTablet ? 450.0 : 500.0));
+    final titleFontSize = isSmallMobile ? 24.0 : (isMobile ? 28.0 : 32.0);
+    final subtitleFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final labelFontSize = isSmallMobile ? 11.0 : 12.0;
+    final iconSize = isSmallMobile ? 20.0 : 24.0;
+    final fieldSpacing = isSmallMobile ? 18.0 : (isMobile ? 20.0 : 24.0);
+    final buttonPadding = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final buttonFontSize = isSmallMobile ? 14.0 : 16.0;
+    final linkFontSize = isSmallMobile ? 13.0 : 14.0;
+    
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -208,21 +230,21 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
                   Image.asset(
                     'assets/logo.png',
-                    height: 200,
-                    width: 200,
+                    height: logoSize,
+                    width: logoSize,
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: logoSpacing),
                   
                   // Login Form Card
                   Container(
-                    constraints: const BoxConstraints(maxWidth: 400),
+                    constraints: BoxConstraints(maxWidth: cardMaxWidth),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -234,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(32.0),
+                    padding: EdgeInsets.all(cardPadding),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -243,22 +265,22 @@ class _LoginScreenState extends State<LoginScreen> {
                           Text(
                             'Hello',
                             style: poppinsStyle(
-                              fontSize: 32,
+                              fontSize: titleFontSize,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF003366),
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: isSmallMobile ? 6.0 : 8.0),
                           Text(
                             'Sign Into Your Account',
                             style: poppinsStyle(
-                              fontSize: 16,
+                              fontSize: subtitleFontSize,
                               color: Colors.grey.shade700,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 32),
+                          SizedBox(height: isSmallMobile ? 24.0 : 32.0),
                           
                           // Email Field
                           TextFormField(
@@ -266,18 +288,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: 'WVSU Email Address',
                               labelStyle: poppinsStyle(
-                                fontSize: 12,
+                                fontSize: labelFontSize,
                                 color: Colors.grey.shade600,
                               ),
-                              suffixIcon: const Icon(
+                              suffixIcon: Icon(
                                 Icons.email,
                                 color: Color(0xFF003366),
+                                size: iconSize,
                               ),
                             ),
                             keyboardType: TextInputType.emailAddress,
                             validator: _validateEmail,
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: fieldSpacing),
                           
                           // Password Field
                           TextFormField(
@@ -285,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: 'Password',
                               labelStyle: poppinsStyle(
-                                fontSize: 12,
+                                fontSize: labelFontSize,
                                 color: Colors.grey.shade600,
                               ),
                               suffixIcon: IconButton(
@@ -294,6 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ? Icons.lock
                                       : Icons.lock_open,
                                   color: const Color(0xFF003366),
+                                  size: iconSize,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -310,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: isSmallMobile ? 12.0 : 16.0),
                           
                           // Forgot Password
                           Align(
@@ -350,19 +374,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                 'Forgot Your Password?',
                                 style: poppinsStyle(
                                   color: Colors.grey.shade600,
-                                  fontSize: 14,
+                                  fontSize: linkFontSize,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: isSmallMobile ? 18.0 : 24.0),
                           
                           // Login Button
                           ElevatedButton(
                             onPressed: _login,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF003366),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: EdgeInsets.symmetric(vertical: buttonPadding),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -370,7 +394,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Text(
                               'Login',
                               style: poppinsStyle(
-                                fontSize: 16,
+                                fontSize: buttonFontSize,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
@@ -380,7 +404,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: isSmallMobile ? 18.0 : 24.0),
                   
                   // Register Link
                   Row(
@@ -390,6 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         "Don't have an account? ",
                         style: poppinsStyle(
                           color: Colors.grey.shade700,
+                          fontSize: linkFontSize,
                         ),
                       ),
                       TextButton(
@@ -406,6 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: poppinsStyle(
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF003366),
+                            fontSize: linkFontSize,
                           ),
                         ),
                       ),
@@ -713,6 +739,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showTermsAndConditions(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallMobile = size.width < 360;
+    final isMobile = size.width < 600;
+    
+    final dialogMaxWidth = isSmallMobile ? 320.0 : (isMobile ? 400.0 : 500.0);
+    final dialogMaxHeight = isSmallMobile ? 500.0 : 600.0;
+    final headerPadding = isSmallMobile ? 16.0 : 20.0;
+    final headerFontSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final contentPadding = isSmallMobile ? 16.0 : 24.0;
+    final titleFontSize = isSmallMobile ? 15.0 : (isMobile ? 16.0 : 18.0);
+    final bodyFontSize = isSmallMobile ? 13.0 : 14.0;
+    final sectionTitleFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 15.0);
+    final noteFontSize = isSmallMobile ? 12.0 : 13.0;
+    final buttonPadding = isSmallMobile ? 12.0 : 14.0;
+    final buttonFontSize = isSmallMobile ? 14.0 : 16.0;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -721,12 +763,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+            constraints: BoxConstraints(maxWidth: dialogMaxWidth, maxHeight: dialogMaxHeight),
             child: Column(
               children: [
                 // Header
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(headerPadding),
                   decoration: BoxDecoration(
                     color: const Color(0xFF003366),
                     borderRadius: const BorderRadius.only(
@@ -740,14 +782,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Text(
                           'Terms and Conditions',
                           style: poppinsStyle(
-                            fontSize: 20,
+                            fontSize: headerFontSize,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
+                        icon: Icon(Icons.close, color: Colors.white, size: isSmallMobile ? 20.0 : 24.0),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],
@@ -756,51 +798,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Scrollable Content
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(contentPadding),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Book Nest App – Terms and Conditions',
                           style: poppinsStyle(
-                            fontSize: 18,
+                            fontSize: titleFontSize,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF003366),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: isSmallMobile ? 12.0 : 16.0),
                         Text(
                           'Welcome to Book Nest! By using this application, you agree to the following terms:',
                           style: poppinsStyle(
-                            fontSize: 14,
+                            fontSize: bodyFontSize,
                             color: Colors.grey.shade800,
                             height: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: isSmallMobile ? 16.0 : 20.0),
                         _buildTermSection(
                           '1. Account Usage',
                           'You are responsible for maintaining the confidentiality of your account information and activities.',
+                          sectionTitleFontSize,
+                          bodyFontSize,
+                          isSmallMobile,
                         ),
                         _buildTermSection(
                           '2. Content',
                           'All books, articles, and materials available in this app are for personal and educational use only. Redistribution without permission is prohibited.',
+                          sectionTitleFontSize,
+                          bodyFontSize,
+                          isSmallMobile,
                         ),
                         _buildTermSection(
                           '3. Privacy',
                           'We collect minimal user data necessary for app functionality. Your data will not be shared with third parties without consent.',
+                          sectionTitleFontSize,
+                          bodyFontSize,
+                          isSmallMobile,
                         ),
                         _buildTermSection(
                           '4. Limitations',
                           'We are not responsible for any damages or data loss arising from the use of this app.',
+                          sectionTitleFontSize,
+                          bodyFontSize,
+                          isSmallMobile,
                         ),
                         _buildTermSection(
                           '5. Changes',
                           'Book Nest reserves the right to update these terms at any time. Continued use of the app means you accept any revised terms.',
+                          sectionTitleFontSize,
+                          bodyFontSize,
+                          isSmallMobile,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: isSmallMobile ? 16.0 : 20.0),
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.all(isSmallMobile ? 12.0 : 16.0),
                           decoration: BoxDecoration(
                             color: Colors.blue.shade50,
                             borderRadius: BorderRadius.circular(12),
@@ -809,7 +866,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Text(
                             'By clicking "Agree" or continuing to use the app, you confirm that you have read and accepted these Terms and Conditions.',
                             style: poppinsStyle(
-                              fontSize: 13,
+                              fontSize: noteFontSize,
                               color: const Color(0xFF003366),
                               fontWeight: FontWeight.w500,
                               height: 1.5,
@@ -822,7 +879,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 // Footer Button
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(headerPadding),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: const BorderRadius.only(
@@ -836,7 +893,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () => Navigator.of(context).pop(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF003366),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: EdgeInsets.symmetric(vertical: buttonPadding),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
@@ -844,7 +901,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Text(
                         'Close',
                         style: poppinsStyle(
-                          fontSize: 16,
+                          fontSize: buttonFontSize,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -860,25 +917,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTermSection(String title, String content) {
+  Widget _buildTermSection(String title, String content, double titleFontSize, double contentFontSize, bool isSmallMobile) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: isSmallMobile ? 12.0 : 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
             style: poppinsStyle(
-              fontSize: 15,
+              fontSize: titleFontSize,
               fontWeight: FontWeight.bold,
               color: const Color(0xFF003366),
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: isSmallMobile ? 4.0 : 6.0),
           Text(
             content,
             style: poppinsStyle(
-              fontSize: 14,
+              fontSize: contentFontSize,
               color: Colors.grey.shade700,
               height: 1.5,
             ),
@@ -890,6 +947,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    
+    // Responsive breakpoints
+    final isSmallMobile = size.width < 360;
+    final isMobile = size.width < 600;
+    final isTablet = size.width >= 600 && size.width < 900;
+    
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 32.0 : 40.0));
+    final logoSize = isSmallMobile ? 140.0 : (isMobile ? 160.0 : (isTablet ? 180.0 : 200.0));
+    final logoSpacing = isSmallMobile ? 24.0 : (isMobile ? 32.0 : 40.0);
+    final cardPadding = isSmallMobile ? 20.0 : (isMobile ? 24.0 : (isTablet ? 28.0 : 32.0));
+    final cardMaxWidth = isSmallMobile ? 320.0 : (isMobile ? 380.0 : (isTablet ? 450.0 : 500.0));
+    final titleFontSize = isSmallMobile ? 24.0 : (isMobile ? 28.0 : 32.0);
+    final labelFontSize = isSmallMobile ? 11.0 : 12.0;
+    final iconSize = isSmallMobile ? 20.0 : 24.0;
+    final fieldSpacing = isSmallMobile ? 18.0 : (isMobile ? 20.0 : 24.0);
+    final checkboxFontSize = isSmallMobile ? 12.0 : (isMobile ? 13.0 : 14.0);
+    final buttonPadding = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final buttonFontSize = isSmallMobile ? 14.0 : 16.0;
+    final linkFontSize = isSmallMobile ? 13.0 : 14.0;
+    final loaderSize = isSmallMobile ? 20.0 : 24.0;
+    
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -905,21 +985,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo
                   Image.asset(
                     'assets/logo.png',
-                    height: 200,
-                    width: 200,
+                    height: logoSize,
+                    width: logoSize,
                   ),
-                  const SizedBox(height: 40),
+                  SizedBox(height: logoSpacing),
                   
                   // Register Form Card
                   Container(
-                    constraints: const BoxConstraints(maxWidth: 400),
+                    constraints: BoxConstraints(maxWidth: cardMaxWidth),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -931,7 +1011,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.all(32.0),
+                    padding: EdgeInsets.all(cardPadding),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -940,13 +1020,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Text(
                             'Create Account',
                             style: poppinsStyle(
-                              fontSize: 32,
+                              fontSize: titleFontSize,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF003366),
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 32),
+                          SizedBox(height: isSmallMobile ? 24.0 : 32.0),
                           
                           // Name Field
                           TextFormField(
@@ -954,12 +1034,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             decoration: InputDecoration(
                               labelText: 'User Name',
                               labelStyle: poppinsStyle(
-                                fontSize: 12,
+                                fontSize: labelFontSize,
                                 color: Colors.grey.shade600,
                               ),
-                              suffixIcon: const Icon(
+                              suffixIcon: Icon(
                                 Icons.person,
                                 color: Color(0xFF003366),
+                                size: iconSize,
                               ),
                             ),
                             validator: (value) {
@@ -969,7 +1050,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: fieldSpacing),
                           
                           // Email Field
                           TextFormField(
@@ -977,18 +1058,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             decoration: InputDecoration(
                               labelText: 'WVSU Email Address',
                               labelStyle: poppinsStyle(
-                                fontSize: 12,
+                                fontSize: labelFontSize,
                                 color: Colors.grey.shade600,
                               ),
-                              suffixIcon: const Icon(
+                              suffixIcon: Icon(
                                 Icons.email,
                                 color: Color(0xFF003366),
+                                size: iconSize,
                               ),
                             ),
                             keyboardType: TextInputType.emailAddress,
                             validator: _validateEmail,
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: fieldSpacing),
                           
                           // Password Field
                           TextFormField(
@@ -996,7 +1078,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             decoration: InputDecoration(
                               labelText: 'Password',
                               labelStyle: poppinsStyle(
-                                fontSize: 12,
+                                fontSize: labelFontSize,
                                 color: Colors.grey.shade600,
                               ),
                               suffixIcon: IconButton(
@@ -1005,6 +1087,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ? Icons.lock
                                       : Icons.lock_open,
                                   color: const Color(0xFF003366),
+                                  size: iconSize,
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -1024,7 +1107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: fieldSpacing),
                           
                           // Terms Checkbox
                           Row(
@@ -1048,7 +1131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   child: RichText(
                                     text: TextSpan(
                                       style: poppinsStyle(
-                                        fontSize: 14,
+                                        fontSize: checkboxFontSize,
                                         color: Colors.grey.shade700,
                                       ),
                                       children: [
@@ -1065,7 +1148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             child: Text(
                                               'Terms & Condition',
                                               style: poppinsStyle(
-                                                fontSize: 14,
+                                                fontSize: checkboxFontSize,
                                                 color: const Color(0xFF003366),
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -1079,22 +1162,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: isSmallMobile ? 18.0 : 24.0),
                           
                           // Register Button
                           ElevatedButton(
                             onPressed: _isLoading ? null : _register,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF003366),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: EdgeInsets.symmetric(vertical: buttonPadding),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
                             ),
                             child: _isLoading
-                                ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
+                                ? SizedBox(
+                                    height: loaderSize,
+                                    width: loaderSize,
                                     child: CircularProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       strokeWidth: 2,
@@ -1103,7 +1186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 : Text(
                                     'Register Now',
                                     style: poppinsStyle(
-                                      fontSize: 16,
+                                      fontSize: buttonFontSize,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
@@ -1113,7 +1196,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: isSmallMobile ? 18.0 : 24.0),
                   
                   // Login Link
                   Row(
@@ -1123,6 +1206,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Already have an account? ',
                         style: poppinsStyle(
                           color: Colors.grey.shade700,
+                          fontSize: linkFontSize,
                         ),
                       ),
                       TextButton(
@@ -1139,6 +1223,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           style: poppinsStyle(
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF003366),
+                            fontSize: linkFontSize,
                           ),
                         ),
                       ),

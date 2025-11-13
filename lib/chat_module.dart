@@ -89,7 +89,20 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 32.0 : 40.0));
+    final titleFontSize = isSmallMobile ? 28.0 : (isMobile ? 32.0 : (isTablet ? 36.0 : 40.0));
+    final searchFontSize = isSmallMobile ? 14.0 : (isMobile ? 16.0 : 18.0);
+    final searchIconSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final verticalPadding = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    final spacing = isSmallMobile ? 16.0 : (isMobile ? 20.0 : 24.0);
     
     return Scaffold(
       backgroundColor: Colors.white,
@@ -100,13 +113,13 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
             // Header Section
             Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 16.0 : 20.0,
-                vertical: isSmallScreen ? 12.0 : 16.0,
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
               ),
               child: Text(
                 'Chats',
                 style: GoogleFonts.poppins(
-                  fontSize: isSmallScreen ? 28 : 32,
+                  fontSize: titleFontSize,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF003060),
                 ),
@@ -116,7 +129,7 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
             // Search Bar
             Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 16.0 : 20.0,
+                horizontal: horizontalPadding,
               ),
               child: Container(
                 decoration: BoxDecoration(
@@ -130,25 +143,25 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                     hintText: 'Search',
                     hintStyle: GoogleFonts.poppins(
                       color: Colors.grey.shade400,
-                      fontSize: isSmallScreen ? 14 : 16,
+                      fontSize: searchFontSize,
                       fontWeight: FontWeight.w400,
                     ),
                     prefixIcon: Icon(
                       Icons.search,
                       color: Colors.grey.shade400,
-                      size: isSmallScreen ? 20 : 24,
+                      size: searchIconSize,
                     ),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: isSmallScreen ? 12 : 16,
+                      horizontal: isMobile ? 20 : 24,
+                      vertical: verticalPadding,
                     ),
                   ),
                 ),
               ),
             ),
             
-            SizedBox(height: isSmallScreen ? 16 : 20),
+            SizedBox(height: spacing),
             
             // Chat List
             Expanded(
@@ -158,7 +171,7 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                         'No chats found',
                         style: GoogleFonts.poppins(
                           color: Colors.grey.shade500,
-                          fontSize: isSmallScreen ? 14 : 16,
+                          fontSize: searchFontSize,
                         ),
                       ),
                     )
@@ -169,7 +182,9 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                         final chat = _filteredChats[index];
                         return ChatTile(
                           chat: chat,
-                          isSmallScreen: isSmallScreen,
+                          isSmallMobile: isSmallMobile,
+                          isMobile: isMobile,
+                          horizontalPadding: horizontalPadding,
                         );
                       },
                     ),
@@ -232,19 +247,19 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
           elevation: 0,
           items: [
             BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(Icons.home_rounded, Icons.home_rounded, 0),
+              icon: _buildAnimatedIcon(Icons.home_rounded, Icons.home_rounded, 0, isSmallMobile, isMobile),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(Icons.menu_book_rounded, Icons.menu_book_rounded, 1),
+              icon: _buildAnimatedIcon(Icons.menu_book_rounded, Icons.menu_book_rounded, 1, isSmallMobile, isMobile),
               label: 'Bookmarks',
             ),
             BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(Icons.chat_bubble_rounded, Icons.chat_bubble_rounded, 2),
+              icon: _buildAnimatedIcon(Icons.chat_bubble_rounded, Icons.chat_bubble_rounded, 2, isSmallMobile, isMobile),
               label: 'Messages',
             ),
             BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(Icons.person_rounded, Icons.person_rounded, 3),
+              icon: _buildAnimatedIcon(Icons.person_rounded, Icons.person_rounded, 3, isSmallMobile, isMobile),
               label: 'Profile',
             ),
           ],
@@ -253,7 +268,10 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index) {
+  Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index, bool isSmallMobile, bool isMobile) {
+    // Responsive icon size
+    final iconSize = isSmallMobile ? 28.0 : (isMobile ? 32.0 : 36.0);
+    
     return AnimatedBuilder(
       animation: _iconAnimationControllers[index],
       builder: (context, child) {
@@ -276,7 +294,7 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
             scale: scaleValue,
             child: Icon(
               selectedNavIndex == index ? filledIcon : outlinedIcon,
-              size: 32,
+              size: iconSize,
               color: selectedNavIndex == index
                   ? const Color(0xFFD67730)
                   : const Color(0xFF003060),
@@ -290,16 +308,31 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
 
 class ChatTile extends StatelessWidget {
   final ChatItem chat;
-  final bool isSmallScreen;
+  final bool isSmallMobile;
+  final bool isMobile;
+  final double horizontalPadding;
 
   const ChatTile({
     Key? key,
     required this.chat,
-    required this.isSmallScreen,
+    required this.isSmallMobile,
+    required this.isMobile,
+    required this.horizontalPadding,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Responsive sizing for chat tile
+    final avatarRadius = isSmallMobile ? 28.0 : (isMobile ? 32.0 : 36.0);
+    final avatarSize = avatarRadius * 2;
+    final avatarSpacing = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    final verticalPadding = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    final nameFontSize = isSmallMobile ? 15.0 : (isMobile ? 17.0 : 19.0);
+    final messageFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final initialsFontSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final unreadDotSize = isSmallMobile ? 10.0 : (isMobile ? 10.0 : 12.0);
+    final dividerLeftPadding = avatarSize + avatarSpacing + horizontalPadding;
+    
     return Column(
       children: [
         InkWell(
@@ -320,28 +353,28 @@ class ChatTile extends StatelessWidget {
           },
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isSmallScreen ? 16.0 : 20.0,
-              vertical: isSmallScreen ? 12.0 : 16.0,
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
             ),
             child: Row(
               children: [
                 // Avatar
                 CircleAvatar(
-                  radius: isSmallScreen ? 28 : 32,
+                  radius: avatarRadius,
                   backgroundColor: chat.avatarColor,
                   child: chat.isSystemChat
                       ? ClipOval(
                           child: Image.asset(
                             'assets/logo.png',
                             fit: BoxFit.cover,
-                            width: isSmallScreen ? 56 : 64,
-                            height: isSmallScreen ? 56 : 64,
+                            width: avatarSize,
+                            height: avatarSize,
                             errorBuilder: (context, error, stackTrace) {
                               return Text(
                                 chat.initials,
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
-                                  fontSize: isSmallScreen ? 16 : 18,
+                                  fontSize: initialsFontSize,
                                   fontWeight: FontWeight.w600,
                                 ),
                               );
@@ -352,12 +385,12 @@ class ChatTile extends StatelessWidget {
                           chat.initials,
                           style: GoogleFonts.poppins(
                             color: Colors.white,
-                            fontSize: isSmallScreen ? 16 : 18,
+                            fontSize: initialsFontSize,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                 ),
-                SizedBox(width: isSmallScreen ? 12 : 16),
+                SizedBox(width: avatarSpacing),
                 // Chat Details
                 Expanded(
                   child: Column(
@@ -369,7 +402,7 @@ class ChatTile extends StatelessWidget {
                             child: Text(
                               chat.name,
                               style: GoogleFonts.poppins(
-                                fontSize: isSmallScreen ? 15 : 17,
+                                fontSize: nameFontSize,
                                 fontWeight: chat.isUnread ? FontWeight.w700 : FontWeight.w600,
                                 color: Colors.black,
                               ),
@@ -379,8 +412,8 @@ class ChatTile extends StatelessWidget {
                           ),
                           if (chat.isUnread)
                             Container(
-                              width: 10,
-                              height: 10,
+                              width: unreadDotSize,
+                              height: unreadDotSize,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFD67730),
                                 shape: BoxShape.circle,
@@ -388,11 +421,11 @@ class ChatTile extends StatelessWidget {
                             ),
                         ],
                       ),
-                      SizedBox(height: isSmallScreen ? 3 : 4),
+                      SizedBox(height: isSmallMobile ? 3 : 4),
                       Text(
                         chat.message,
                         style: GoogleFonts.poppins(
-                          fontSize: isSmallScreen ? 13 : 14,
+                          fontSize: messageFontSize,
                           fontWeight: chat.isUnread ? FontWeight.w500 : FontWeight.w400,
                           color: chat.isUnread ? Colors.black87 : Colors.grey.shade600,
                         ),
@@ -409,8 +442,8 @@ class ChatTile extends StatelessWidget {
         // Divider
         Padding(
           padding: EdgeInsets.only(
-            left: isSmallScreen ? 84.0 : 96.0,
-            right: isSmallScreen ? 16.0 : 20.0,
+            left: dividerLeftPadding,
+            right: horizontalPadding,
           ),
           child: Divider(
             height: 1,

@@ -184,6 +184,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 32.0 : 40.0));
+    final welcomeFontSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final nameFontSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : (isTablet ? 28.0 : 32.0));
+    final avatarRadius = isSmallMobile ? 24.0 : (isMobile ? 28.0 : 32.0);
+    final avatarIconSize = isSmallMobile ? 28.0 : (isMobile ? 32.0 : 36.0);
+    final maxBannerHeight = isSmallMobile ? 150.0 : (isMobile ? 200.0 : (isTablet ? 250.0 : 300.0));
+    final sectionFontSize = isSmallMobile ? 24.0 : (isMobile ? 28.0 : (isTablet ? 32.0 : 36.0));
+    final viewAllFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final searchHeight = isSmallMobile ? 44.0 : (isMobile ? 48.0 : 52.0);
+    final searchIconSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final categoryHeight = isSmallMobile ? 40.0 : (isMobile ? 45.0 : 50.0);
+    final categoryFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 15.0);
+    final categoryPaddingH = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final spacing = isSmallMobile ? 16.0 : (isMobile ? 20.0 : 24.0);
+    final buttonHeight = isSmallMobile ? 52.0 : (isMobile ? 56.0 : 60.0);
+    final buttonFontSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final navIconSize = isSmallMobile ? 28.0 : (isMobile ? 32.0 : 36.0);
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -206,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         duration: const Duration(milliseconds: 200),
                         height: _headerOpacity > 0.3 ? null : 0,
                         child: Padding(
-                          padding: const EdgeInsets.all(20.0),
+                          padding: EdgeInsets.all(horizontalPadding),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -215,20 +242,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 children: [
                                   Text(
                                     'Welcome,',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'Poppins',
-                                      fontSize: 18,
+                                      fontSize: welcomeFontSize,
                                       color: Colors.grey,
                                       fontWeight: FontWeight.w400,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: isSmallMobile ? 2 : 4),
                                   Text(
                                     userName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'Poppins',
-                                      fontSize: 24,
-                                      color: Color(0xFF003060),
+                                      fontSize: nameFontSize,
+                                      color: const Color(0xFF003060),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -253,24 +280,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   });
                                 },
                                 child: CircleAvatar(
-                                  radius: 28,
+                                  radius: avatarRadius,
                                   backgroundColor: const Color(0xFF4A90E2),
                                   child: _avatarImage != null
                                       ? ClipOval(
                                           child: Image.file(
                                             _avatarImage!,
                                             fit: BoxFit.cover,
-                                            width: 56,
-                                            height: 56,
+                                            width: avatarRadius * 2,
+                                            height: avatarRadius * 2,
                                           ),
                                         )
                                       : Image.asset(
                                           'assets/avatar.png',
                                           errorBuilder: (context, error, stackTrace) {
-                                            return const Icon(
+                                            return Icon(
                                               Icons.person,
                                               color: Colors.white,
-                                              size: 32,
+                                              size: avatarIconSize,
                                             );
                                           },
                                         ),
@@ -285,10 +312,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     // Homepage Post Image - Collapsible
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      height: _bannerHeight.clamp(0.0, 200.0),
+                      height: _bannerHeight.clamp(0.0, maxBannerHeight),
                       child: _bannerHeight > 20
                           ? Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Image.asset(
@@ -304,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       child: Center(
                                         child: Icon(
                                           Icons.image_not_supported,
-                                          size: 50,
+                                          size: isSmallMobile ? 40 : 50,
                                           color: Colors.grey[600],
                                         ),
                                       ),
@@ -316,7 +343,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           : const SizedBox.shrink(),
                     ),
 
-                    const SizedBox(height: 24),
+                    SizedBox(height: spacing),
                   ],
                 ),
               ),
@@ -327,13 +354,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                     child: Row(
                       children: [
                         Text(
                           'Section',
                           style: poppinsStyle(
-                            fontSize: 28,
+                            fontSize: sectionFontSize,
                             color: const Color(0xFF003060),
                             fontWeight: FontWeight.bold,
                           ),
@@ -351,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           child: Text(
                             'View All',
                             style: poppinsStyle(
-                              fontSize: 14,
+                              fontSize: viewAllFontSize,
                               color: const Color(0xFFD67730),
                               fontWeight: FontWeight.w600,
                             ),
@@ -361,13 +388,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: spacing * 0.8),
 
                   // Search Bar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                     child: Container(
-                      height: 48,
+                      height: searchHeight,
                       decoration: BoxDecoration(
                         color: const Color(0xFFD4DCE5),
                         borderRadius: BorderRadius.circular(24),
@@ -383,14 +410,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           hintText: 'Search',
                           hintStyle: poppinsStyle(
                             color: Colors.grey,
+                            fontSize: viewAllFontSize,
                           ),
                           prefixIcon: Icon(
                             Icons.search,
                             color: Colors.grey[600],
+                            size: searchIconSize,
                           ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding,
                             vertical: 12,
                           ),
                         ),
@@ -398,13 +427,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: spacing),
 
                   // Category Filters
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                     child: SizedBox(
-                      height: 45,
+                      height: categoryHeight,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: categories.length,
@@ -412,7 +441,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           final category = categories[index];
                           final isSelected = selectedCategory == category;
                           return Padding(
-                            padding: const EdgeInsets.only(right: 12),
+                            padding: EdgeInsets.only(right: isMobile ? 12 : 16),
                             child: GestureDetector(
                               onTap: () {
                                 setState(() {
@@ -420,8 +449,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 });
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: categoryPaddingH,
                                   vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
@@ -443,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     fontWeight: isSelected
                                         ? FontWeight.bold
                                         : FontWeight.w600,
-                                    fontSize: 14,
+                                    fontSize: categoryFontSize,
                                   ),
                                 ),
                               ),
@@ -454,7 +483,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: spacing),
                 ],
               ),
             ),
@@ -470,10 +499,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   return SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(20.0),
+                        padding: EdgeInsets.all(horizontalPadding),
                         child: Text(
                           'Error loading books',
-                          style: poppinsStyle(color: Colors.red),
+                          style: poppinsStyle(
+                            color: Colors.red,
+                            fontSize: viewAllFontSize,
+                          ),
                         ),
                       ),
                     ),
@@ -481,11 +513,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 }
 
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SliverToBoxAdapter(
+                  return SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: CircularProgressIndicator(),
+                        padding: EdgeInsets.all(horizontalPadding),
+                        child: const CircularProgressIndicator(
+                          color: Color(0xFFD67730),
+                        ),
                       ),
                     ),
                   );
@@ -545,29 +579,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   return SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(40.0),
+                        padding: EdgeInsets.all(horizontalPadding * 2),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.book_outlined,
-                              size: 80,
+                              size: isSmallMobile ? 64 : (isMobile ? 72 : 80),
                               color: Colors.grey[400],
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: spacing * 0.8),
                             Text(
                               'No books yet',
                               style: poppinsStyle(
-                                fontSize: 20,
+                                fontSize: isSmallMobile ? 18 : (isMobile ? 19 : 20),
                                 color: Colors.grey,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: spacing * 0.4),
                             Text(
                               'Add books to start your reading list',
                               style: poppinsStyle(
-                                fontSize: 14,
+                                fontSize: isSmallMobile ? 12 : (isMobile ? 13 : 14),
                                 color: Colors.grey,
                               ),
                             ),
@@ -578,20 +612,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   );
                 }
 
+                // Dynamic grid columns
+                final gridColumns = isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4));
+                final gridAspectRatio = isSmallMobile ? 0.60 : (isMobile ? 0.65 : (isTablet ? 0.70 : 0.75));
+
                 return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.65,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: gridColumns,
+                      crossAxisSpacing: isMobile ? 12 : (isTablet ? 16 : 20),
+                      mainAxisSpacing: isMobile ? 14 : (isTablet ? 18 : 20),
+                      childAspectRatio: gridAspectRatio,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final book = filteredBooks[index];
                         final bookId = (book['id'] ?? '').toString();
-                        return _buildBookCard(book, bookId);
+                        return _buildBookCard(book, bookId, isSmallMobile, isMobile);
                       },
                       childCount: filteredBooks.length,
                     ),
@@ -609,12 +647,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
         // Fixed "Add Book" Button at the bottom - Floating
         Positioned(
-          left: 20,
-          right: 20,
-          bottom: 20,
+          left: horizontalPadding,
+          right: horizontalPadding,
+          bottom: horizontalPadding,
           child: SizedBox(
             width: double.infinity,
-            height: 56,
+            height: buttonHeight,
             child: ElevatedButton(
               onPressed: () {
                 // Navigate to posting module
@@ -635,7 +673,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Text(
                 'Add a Book here',
                 style: poppinsStyle(
-                  fontSize: 18,
+                  fontSize: buttonFontSize,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -728,6 +766,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Icons.home_rounded,
                 Icons.home_rounded,
                 0,
+                navIconSize,
               ),
               label: 'Home',
             ),
@@ -736,6 +775,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Icons.menu_book_rounded,
                 Icons.menu_book_rounded,
                 1,
+                navIconSize,
               ),
               label: 'Bookmarks',
             ),
@@ -744,6 +784,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Icons.chat_bubble_rounded,
                 Icons.chat_bubble_rounded,
                 2,
+                navIconSize,
               ),
               label: 'Messages',
             ),
@@ -752,6 +793,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Icons.person_rounded,
                 Icons.person_rounded,
                 3,
+                navIconSize,
               ),
               label: 'Profile',
             ),
@@ -761,10 +803,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildBookCard(Map<String, dynamic> book, String bookId) {
+  Widget _buildBookCard(Map<String, dynamic> book, String bookId, bool isSmallMobile, bool isMobile) {
     final condition = book['condition'] ?? 'Used';
     final isNew = condition.toLowerCase().contains('new');
     final imageUrl = book['imageUrl'] as String?;
+    
+    // Responsive sizing
+    final coverHeight = isSmallMobile ? 120.0 : (isMobile ? 130.0 : 140.0);
+    final coverIconSize = isSmallMobile ? 48.0 : (isMobile ? 54.0 : 60.0);
+    final cardPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final titleFontSize = isSmallMobile ? 12.0 : (isMobile ? 13.0 : 14.0);
+    final genreFontSize = isSmallMobile ? 10.0 : (isMobile ? 10.5 : 11.0);
+    final badgeFontSize = isSmallMobile ? 9.0 : (isMobile ? 9.5 : 10.0);
+    final badgePaddingH = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    final badgePaddingV = isSmallMobile ? 3.0 : (isMobile ? 3.5 : 4.0);
     
     return GestureDetector(
       onTap: () {
@@ -795,7 +847,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           // Book Cover (uploaded image or placeholder with genre color)
           Container(
-            height: 140,
+            height: coverHeight,
             decoration: BoxDecoration(
               color: _getGenreColor(book['genre']),
               borderRadius: const BorderRadius.only(
@@ -817,7 +869,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         return Center(
                           child: Icon(
                             Icons.menu_book,
-                            size: 60,
+                            size: coverIconSize,
                             color: Colors.white.withOpacity(0.8),
                           ),
                         );
@@ -827,7 +879,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 : Center(
                     child: Icon(
                       Icons.menu_book,
-                      size: 60,
+                      size: coverIconSize,
                       color: Colors.white.withOpacity(0.8),
                     ),
                   ),
@@ -835,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: EdgeInsets.all(cardPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -843,7 +895,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Text(
                     book['title'] ?? 'Untitled',
                     style: poppinsStyle(
-                      fontSize: 14,
+                      fontSize: titleFontSize,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF003060),
                     ),
@@ -851,13 +903,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     overflow: TextOverflow.ellipsis,
                   ),
                   
-                  const SizedBox(height: 4),
+                  SizedBox(height: isMobile ? 3 : 4),
                   
                   // Genre
                   Text(
                     book['genre'] ?? '',
                     style: poppinsStyle(
-                      fontSize: 11,
+                      fontSize: genreFontSize,
                       color: Colors.grey,
                     ),
                   ),
@@ -866,9 +918,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   
                   // Condition Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: badgePaddingH,
+                      vertical: badgePaddingV,
                     ),
                     decoration: BoxDecoration(
                       color: isNew 
@@ -879,7 +931,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Text(
                       condition,
                       style: poppinsStyle(
-                        fontSize: 10,
+                        fontSize: badgeFontSize,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -920,7 +972,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index) {
+  Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index, double iconSize) {
     return AnimatedBuilder(
       animation: _iconAnimationControllers[index],
       builder: (context, child) {
@@ -943,7 +995,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             scale: scaleValue,
             child: Icon(
               selectedNavIndex == index ? filledIcon : outlinedIcon,
-              size: 32,
+              size: iconSize,
               color: selectedNavIndex == index
                   ? const Color(0xFFD67730)
                   : const Color(0xFF003060),

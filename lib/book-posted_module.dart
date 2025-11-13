@@ -45,6 +45,20 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 32.0 : 40.0));
+    final gridCrossAxisCount = isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4));
+    final gridChildAspectRatio = isSmallMobile ? 0.60 : (isMobile ? 0.65 : (isTablet ? 0.70 : 0.75));
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -52,27 +66,27 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            _buildHeader(),
+            _buildHeader(isMobile, horizontalPadding),
 
-            const SizedBox(height: 24),
+            SizedBox(height: isMobile ? 24 : 32),
 
             // Search Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Row(
                 children: [
                   Text(
                     'Posted Books',
                     style: poppinsStyle(
-                      fontSize: 28,
+                      fontSize: isSmallMobile ? 22 : (isMobile ? 28 : (isTablet ? 32 : 36)),
                       color: const Color(0xFF003060),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: isMobile ? 16 : 20),
                   Expanded(
                     child: Container(
-                      height: 48,
+                      height: isMobile ? 48 : 52,
                       decoration: BoxDecoration(
                         color: const Color(0xFFD4DCE5),
                         borderRadius: BorderRadius.circular(24),
@@ -106,13 +120,13 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            SizedBox(height: isMobile ? 20 : 24),
 
             // Category Filters
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Container(
-                height: 45,
+                height: isMobile ? 45 : 50,
                 color: Colors.white,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
@@ -121,7 +135,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                     final category = categories[index];
                     final isSelected = selectedCategory == category;
                     return Padding(
-                      padding: const EdgeInsets.only(right: 12),
+                      padding: EdgeInsets.only(right: isMobile ? 12 : 16),
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
@@ -129,9 +143,9 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                           });
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 10,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isMobile ? 24 : 28,
+                            vertical: isMobile ? 10 : 12,
                           ),
                           decoration: BoxDecoration(
                             color: isSelected
@@ -152,7 +166,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: isMobile ? 14 : 15,
                             ),
                           ),
                         ),
@@ -163,12 +177,12 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: isMobile ? 24 : 28),
 
             // Books Grid
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: StreamBuilder<DatabaseEvent>(
                   stream: FirebaseDatabase.instance
                       .ref('books')
@@ -272,17 +286,17 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                     }
 
                     return GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.65,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: gridCrossAxisCount,
+                        crossAxisSpacing: isMobile ? 16 : 20,
+                        mainAxisSpacing: isMobile ? 16 : 20,
+                        childAspectRatio: gridChildAspectRatio,
                       ),
                       itemCount: filteredBooks.length,
                       itemBuilder: (context, index) {
                         final book = filteredBooks[index];
                         final bookId = (book['id'] ?? '').toString();
-                        return _buildBookCard(book, bookId);
+                        return _buildBookCard(book, bookId, isMobile, isSmallMobile);
                       },
                     );
                   },
@@ -295,9 +309,12 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile, double horizontalPadding) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding, 
+        vertical: isMobile ? 16 : 20
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -316,23 +333,23 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
             },
             borderRadius: BorderRadius.circular(50),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(isMobile ? 12 : 14),
               decoration: BoxDecoration(
                 color: const Color(0xFF003060),
                 borderRadius: BorderRadius.circular(50),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back,
                 color: Colors.white,
-                size: 20,
+                size: isMobile ? 20 : 24,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: isMobile ? 16 : 20),
           Text(
             'Posted Books',
             style: poppinsStyle(
-              fontSize: 18,
+              fontSize: isMobile ? 18 : 20,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF003060),
             ),
@@ -342,10 +359,11 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
     );
   }
 
-  Widget _buildBookCard(Map<String, dynamic> book, String bookId) {
+  Widget _buildBookCard(Map<String, dynamic> book, String bookId, bool isMobile, bool isSmallMobile) {
     final condition = book['condition'] ?? 'Used';
     final isNew = condition.toLowerCase().contains('new');
     final imageUrl = book['imageUrl'] as String?;
+    final cardImageHeight = isSmallMobile ? 120.0 : (isMobile ? 140.0 : 160.0);
     
     return GestureDetector(
       onTap: () {
@@ -368,7 +386,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
           children: [
             // Book Cover (uploaded image or placeholder with genre color)
             Container(
-              height: 140,
+              height: cardImageHeight,
               decoration: BoxDecoration(
                 color: _getGenreColor(book['genre']),
                 borderRadius: const BorderRadius.only(
@@ -408,7 +426,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
             
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: EdgeInsets.all(isMobile ? 12.0 : 14.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -416,7 +434,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                     Text(
                       book['title'] ?? 'Untitled',
                       style: poppinsStyle(
-                        fontSize: 14,
+                        fontSize: isSmallMobile ? 13 : (isMobile ? 14 : 15),
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF003060),
                       ),
@@ -424,13 +442,13 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     
-                    const SizedBox(height: 4),
+                    SizedBox(height: isMobile ? 4 : 6),
                     
                     // Genre
                     Text(
                       book['genre'] ?? '',
                       style: poppinsStyle(
-                        fontSize: 11,
+                        fontSize: isSmallMobile ? 10 : (isMobile ? 11 : 12),
                         color: Colors.grey,
                       ),
                     ),
@@ -439,9 +457,9 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                     
                     // Condition Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 8 : 10,
+                        vertical: isMobile ? 4 : 5,
                       ),
                       decoration: BoxDecoration(
                         color: isNew 
@@ -452,7 +470,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                       child: Text(
                         condition,
                         style: poppinsStyle(
-                          fontSize: 10,
+                          fontSize: isSmallMobile ? 9 : (isMobile ? 10 : 11),
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
@@ -484,6 +502,11 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
   }
 
   void _showBookDetails(Map<String, dynamic> book, String bookId) {
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
+    final isSmallMobile = size.width < 360;
+    final modalPadding = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 32.0);
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -503,16 +526,16 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
           child: SingleChildScrollView(
             controller: scrollController,
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(modalPadding),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Handle bar
                   Center(
                     child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 20),
+                      width: isMobile ? 40 : 50,
+                      height: isMobile ? 4 : 5,
+                      margin: EdgeInsets.only(bottom: isMobile ? 20 : 24),
                       decoration: BoxDecoration(
                         color: Colors.grey[300],
                         borderRadius: BorderRadius.circular(2),
@@ -528,69 +551,69 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                         base64Decode(book['imageUrl']),
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        height: 250,
+                        height: isSmallMobile ? 220 : (isMobile ? 250 : 300),
                         errorBuilder: (context, error, stackTrace) {
                           return const SizedBox.shrink();
                         },
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: isMobile ? 20 : 24),
                   ],
                   
                   // Book Title
                   Text(
                     book['title'] ?? 'Untitled',
                     style: poppinsStyle(
-                      fontSize: 24,
+                      fontSize: isSmallMobile ? 20 : (isMobile ? 24 : 28),
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF003060),
                     ),
                   ),
                   
-                  const SizedBox(height: 8),
+                  SizedBox(height: isMobile ? 8 : 12),
                   
                   // Author
                   Text(
                     'by ${book['author'] ?? 'Unknown Author'}',
                     style: poppinsStyle(
-                      fontSize: 16,
+                      fontSize: isSmallMobile ? 14 : (isMobile ? 16 : 18),
                       color: Colors.grey,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   
-                  const SizedBox(height: 24),
+                  SizedBox(height: isMobile ? 24 : 28),
                   
                   // Details Grid
-                  _buildDetailRow('Genre', book['genre'] ?? 'N/A'),
-                  _buildDetailRow('Condition', book['condition'] ?? 'N/A'),
-                  _buildDetailRow('Language', book['language'] ?? 'N/A'),
-                  _buildDetailRow('Publisher', book['publisher'] ?? 'N/A'),
-                  _buildDetailRow('Publication', book['publication'] ?? 'N/A'),
-                  _buildDetailRow('Year', book['year'] ?? 'N/A'),
+                  _buildDetailRow('Genre', book['genre'] ?? 'N/A', isSmallMobile, isMobile),
+                  _buildDetailRow('Condition', book['condition'] ?? 'N/A', isSmallMobile, isMobile),
+                  _buildDetailRow('Language', book['language'] ?? 'N/A', isSmallMobile, isMobile),
+                  _buildDetailRow('Publisher', book['publisher'] ?? 'N/A', isSmallMobile, isMobile),
+                  _buildDetailRow('Publication', book['publication'] ?? 'N/A', isSmallMobile, isMobile),
+                  _buildDetailRow('Year', book['year'] ?? 'N/A', isSmallMobile, isMobile),
                   
-                  const SizedBox(height: 24),
+                  SizedBox(height: isMobile ? 24 : 28),
                   
                   // About
                   if (book['about'] != null && book['about'].toString().isNotEmpty) ...[
                     Text(
                       'About',
                       style: poppinsStyle(
-                        fontSize: 18,
+                        fontSize: isSmallMobile ? 16 : (isMobile ? 18 : 20),
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003060),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: isMobile ? 8 : 12),
                     Text(
                       book['about'],
                       style: poppinsStyle(
-                        fontSize: 14,
+                        fontSize: isSmallMobile ? 13 : (isMobile ? 14 : 16),
                         color: Colors.grey[700] ?? Colors.grey,
                         height: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: isMobile ? 24 : 28),
                   ],
                   
                   // Penalties
@@ -598,23 +621,23 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                     Text(
                       'Penalties',
                       style: poppinsStyle(
-                        fontSize: 18,
+                        fontSize: isSmallMobile ? 16 : (isMobile ? 18 : 20),
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003060),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildPenaltyRow('Late Return', book['penalties']['lateReturn']),
-                    _buildPenaltyRow('Damage', book['penalties']['damage']),
-                    _buildPenaltyRow('Lost/Unreturned', book['penalties']['lost']),
-                    const SizedBox(height: 24),
+                    SizedBox(height: isMobile ? 12 : 16),
+                    _buildPenaltyRow('Late Return', book['penalties']['lateReturn'], isSmallMobile, isMobile),
+                    _buildPenaltyRow('Damage', book['penalties']['damage'], isSmallMobile, isMobile),
+                    _buildPenaltyRow('Lost/Unreturned', book['penalties']['lost'], isSmallMobile, isMobile),
+                    SizedBox(height: isMobile ? 24 : 28),
                   ],
                   
                   // Status Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 16 : 20,
+                      vertical: isMobile ? 8 : 10,
                     ),
                     decoration: BoxDecoration(
                       color: book['status'] == 'available'
@@ -637,14 +660,15 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                           color: book['status'] == 'available'
                               ? Colors.green
                               : Colors.orange,
-                          size: 20,
+                          size: isMobile ? 20 : 24,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: isMobile ? 8 : 10),
                         Text(
                           book['status'] == 'available'
                               ? 'Available'
                               : 'Not Available',
                           style: poppinsStyle(
+                            fontSize: isSmallMobile ? 13 : (isMobile ? 14 : 16),
                             color: book['status'] == 'available'
                                 ? Colors.green[700]!
                                 : Colors.orange[700]!,
@@ -663,18 +687,18 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, bool isSmallMobile, bool isMobile) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: EdgeInsets.only(bottom: isMobile ? 12.0 : 16.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: isMobile ? 120 : 140,
             child: Text(
               label,
               style: poppinsStyle(
-                fontSize: 14,
+                fontSize: isSmallMobile ? 13 : (isMobile ? 14 : 16),
                 color: Colors.grey,
                 fontWeight: FontWeight.w500,
               ),
@@ -684,7 +708,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
             child: Text(
               value,
               style: poppinsStyle(
-                fontSize: 14,
+                fontSize: isSmallMobile ? 13 : (isMobile ? 14 : 16),
                 color: const Color(0xFF003060),
                 fontWeight: FontWeight.w600,
               ),
@@ -695,23 +719,23 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
     );
   }
 
-  Widget _buildPenaltyRow(String label, dynamic amount) {
+  Widget _buildPenaltyRow(String label, dynamic amount, bool isSmallMobile, bool isMobile) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: EdgeInsets.only(bottom: isMobile ? 8.0 : 12.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: poppinsStyle(
-              fontSize: 14,
+              fontSize: isSmallMobile ? 13 : (isMobile ? 14 : 16),
               color: Colors.grey[700] ?? Colors.grey,
             ),
           ),
           Text(
             '₱${amount ?? 0}',
             style: poppinsStyle(
-              fontSize: 14,
+              fontSize: isSmallMobile ? 13 : (isMobile ? 14 : 16),
               color: const Color(0xFFD67730),
               fontWeight: FontWeight.w600,
             ),

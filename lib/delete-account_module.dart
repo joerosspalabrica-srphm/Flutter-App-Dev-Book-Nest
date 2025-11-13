@@ -150,12 +150,32 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   @override
   Widget build(BuildContext context) {
     if (_showPasswordConfirmation) {
-      return _buildPasswordConfirmationDialog();
+      return _buildPasswordConfirmationDialog(context);
     }
-    return _buildCountdownDialog();
+    return _buildCountdownDialog(context);
   }
 
-  Widget _buildCountdownDialog() {
+  Widget _buildCountdownDialog(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    
+    // Responsive sizing
+    final titleFontSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final bodyFontSize = isSmallMobile ? 14.0 : (isMobile ? 16.0 : 18.0);
+    final timerIconSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final timerFontSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final warningIconSize = isSmallMobile ? 18.0 : (isMobile ? 20.0 : 22.0);
+    final warningFontSize = isSmallMobile ? 11.0 : (isMobile ? 12.0 : 13.0);
+    final buttonFontSize = isSmallMobile ? 14.0 : (isMobile ? 16.0 : 18.0);
+    final buttonPaddingH = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final buttonPaddingV = isSmallMobile ? 10.0 : (isMobile ? 12.0 : 14.0);
+    final spacing = isSmallMobile ? 16.0 : (isMobile ? 20.0 : 24.0);
+    final containerPadding = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -166,7 +186,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
         style: GoogleFonts.poppins(
           fontWeight: FontWeight.bold,
           color: const Color(0xFF003060),
-          fontSize: 24,
+          fontSize: titleFontSize,
         ),
       ),
       content: Column(
@@ -175,16 +195,16 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           Text(
             'Are you sure you want to delete your account?',
             style: GoogleFonts.poppins(
-              fontSize: 16,
+              fontSize: bodyFontSize,
               color: Colors.grey[700],
               height: 1.4,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: spacing),
           if (!_canDelete)
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(containerPadding),
               decoration: BoxDecoration(
                 color: const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(12),
@@ -195,13 +215,13 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   Icon(
                     Icons.timer_outlined,
                     color: const Color(0xFFD67730),
-                    size: 24,
+                    size: timerIconSize,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: isMobile ? 8 : 12),
                   Text(
                     '$_countdown seconds',
                     style: GoogleFonts.poppins(
-                      fontSize: 18,
+                      fontSize: timerFontSize,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFFD67730),
                     ),
@@ -211,7 +231,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             ),
           if (_canDelete)
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(containerPadding),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
                 borderRadius: BorderRadius.circular(12),
@@ -222,15 +242,17 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   Icon(
                     Icons.warning_rounded,
                     color: Colors.red.shade700,
-                    size: 20,
+                    size: warningIconSize,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'This action cannot be undone',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.red.shade700,
+                  SizedBox(width: isMobile ? 8 : 12),
+                  Flexible(
+                    child: Text(
+                      'This action cannot be undone',
+                      style: GoogleFonts.poppins(
+                        fontSize: warningFontSize,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red.shade700,
+                      ),
                     ),
                   ),
                 ],
@@ -244,13 +266,13 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             Navigator.of(context).pop(); // Close the dialog
           },
           style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: buttonPaddingH, vertical: buttonPaddingV),
           ),
           child: Text(
             'No',
             style: GoogleFonts.poppins(
               color: Colors.grey[600],
-              fontSize: 16,
+              fontSize: buttonFontSize,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -266,7 +288,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: _canDelete ? Colors.red : Colors.grey[400],
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: buttonPaddingH, vertical: buttonPaddingV),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -277,7 +299,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           child: Text(
             'Yes',
             style: GoogleFonts.poppins(
-              fontSize: 16,
+              fontSize: buttonFontSize,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -286,7 +308,32 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     );
   }
 
-  Widget _buildPasswordConfirmationDialog() {
+  Widget _buildPasswordConfirmationDialog(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    
+    // Responsive sizing
+    final lockIconSize = isSmallMobile ? 40.0 : (isMobile ? 48.0 : 56.0);
+    final titleFontSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final bodyFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final textFieldFontSize = isSmallMobile ? 14.0 : (isMobile ? 16.0 : 18.0);
+    final hintFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final iconSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final errorIconSize = isSmallMobile ? 18.0 : (isMobile ? 20.0 : 22.0);
+    final errorFontSize = isSmallMobile ? 11.0 : (isMobile ? 12.0 : 13.0);
+    final buttonFontSize = isSmallMobile ? 14.0 : (isMobile ? 16.0 : 18.0);
+    final buttonPaddingH = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final buttonPaddingV = isSmallMobile ? 10.0 : (isMobile ? 12.0 : 14.0);
+    final spacing = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final titleSpacing = isSmallMobile ? 10.0 : (isMobile ? 12.0 : 16.0);
+    final errorSpacing = isSmallMobile ? 10.0 : (isMobile ? 12.0 : 14.0);
+    final contentPadding = isSmallMobile ? 14.0 : (isMobile ? 16.0 : 18.0);
+    final errorPadding = isSmallMobile ? 10.0 : (isMobile ? 12.0 : 14.0);
+    
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
@@ -297,15 +344,15 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           Icon(
             Icons.lock_outline,
             color: const Color(0xFF003060),
-            size: 48,
+            size: lockIconSize,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: titleSpacing),
           Text(
             'Confirm Password',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.bold,
               color: const Color(0xFF003060),
-              fontSize: 24,
+              fontSize: titleFontSize,
             ),
           ),
         ],
@@ -316,13 +363,13 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           Text(
             'Please enter your password to confirm account deletion',
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: bodyFontSize,
               color: Colors.grey[700],
               height: 1.4,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: spacing),
           // Password TextField
           Container(
             decoration: BoxDecoration(
@@ -340,18 +387,19 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               obscureText: !_isPasswordVisible,
               enabled: !_isDeleting,
               style: GoogleFonts.poppins(
-                fontSize: 16,
+                fontSize: textFieldFontSize,
                 color: const Color(0xFF003060),
               ),
               decoration: InputDecoration(
                 hintText: 'Enter your password',
                 hintStyle: GoogleFonts.poppins(
                   color: Colors.grey[400],
-                  fontSize: 14,
+                  fontSize: hintFontSize,
                 ),
                 prefixIcon: Icon(
                   Icons.lock_outline,
                   color: const Color(0xFF003060).withOpacity(0.6),
+                  size: iconSize,
                 ),
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -359,6 +407,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
                     color: const Color(0xFF003060).withOpacity(0.6),
+                    size: iconSize,
                   ),
                   onPressed: () {
                     setState(() {
@@ -367,18 +416,18 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   },
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: contentPadding,
+                  vertical: contentPadding,
                 ),
               ),
               onSubmitted: (_) => _confirmDeleteAccount(),
             ),
           ),
           if (_errorMessage != null) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: errorSpacing),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(errorPadding),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
                 borderRadius: BorderRadius.circular(8),
@@ -392,14 +441,14 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   Icon(
                     Icons.error_outline,
                     color: Colors.red.shade700,
-                    size: 20,
+                    size: errorIconSize,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: isMobile ? 8 : 10),
                   Expanded(
                     child: Text(
                       _errorMessage!,
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: errorFontSize,
                         color: Colors.red.shade700,
                         fontWeight: FontWeight.w500,
                       ),
@@ -423,13 +472,13 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   });
                 },
           style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: buttonPaddingH, vertical: buttonPaddingV),
           ),
           child: Text(
             'Back',
             style: GoogleFonts.poppins(
               color: _isDeleting ? Colors.grey[400] : Colors.grey[600],
-              fontSize: 16,
+              fontSize: buttonFontSize,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -439,7 +488,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: _isDeleting ? Colors.grey[400] : Colors.red,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: buttonPaddingH, vertical: buttonPaddingV),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -449,8 +498,8 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
           ),
           child: _isDeleting
               ? SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: isSmallMobile ? 18 : 20,
+                  height: isSmallMobile ? 18 : 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -459,7 +508,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
               : Text(
                   'Delete Account',
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: buttonFontSize,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

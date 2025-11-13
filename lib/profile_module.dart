@@ -307,7 +307,25 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing variables
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 28.0 : 36.0));
+    final verticalPadding = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final avatarSize = isSmallMobile ? 100.0 : (isMobile ? 110.0 : (isTablet ? 120.0 : 140.0));
+    final cameraIconSize = isSmallMobile ? 32.0 : (isMobile ? 34.0 : 36.0);
+    final cameraIconInner = isSmallMobile ? 16.0 : (isMobile ? 17.0 : 18.0);
+    final emojiSize = isSmallMobile ? 50.0 : (isMobile ? 55.0 : 60.0);
+    final nameSpacing = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final nameFontSize = isSmallMobile ? 22.0 : (isMobile ? 24.0 : (isTablet ? 26.0 : 30.0));
+    final menuSpacing = isSmallMobile ? 28.0 : (isMobile ? 32.0 : 36.0);
+    final containerPadding = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final containerSpacing = isSmallMobile ? 24.0 : (isMobile ? 28.0 : 32.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -315,8 +333,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         child: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: size.width * 0.05,
-              vertical: 20,
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
             ),
             child: Column(
               children: [
@@ -324,8 +342,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                 GestureDetector(
                   onTap: _pickAvatar,
                   child: Container(
-                    width: isSmallScreen ? 100 : 120,
-                    height: isSmallScreen ? 100 : 120,
+                    width: avatarSize,
+                    height: avatarSize,
                     decoration: BoxDecoration(
                       color: const Color(0xFF5DA3FA),
                       shape: BoxShape.circle,
@@ -346,22 +364,22 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             child: Image.file(
                               _avatarImage!,
                               fit: BoxFit.cover,
-                              width: isSmallScreen ? 100 : 120,
-                              height: isSmallScreen ? 100 : 120,
+                              width: avatarSize,
+                              height: avatarSize,
                             ),
                           )
                         else
                           Text(
                             '👤',
-                            style: TextStyle(fontSize: isSmallScreen ? 50 : 60),
+                            style: TextStyle(fontSize: emojiSize),
                           ),
                         // Camera icon overlay
                         Positioned(
                           bottom: 0,
                           right: 0,
                           child: Container(
-                            width: 36,
-                            height: 36,
+                            width: cameraIconSize,
+                            height: cameraIconSize,
                             decoration: BoxDecoration(
                               color: const Color(0xFFD67730),
                               shape: BoxShape.circle,
@@ -370,10 +388,10 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                                 width: 2,
                               ),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.camera_alt,
                               color: Colors.white,
-                              size: 18,
+                              size: cameraIconInner,
                             ),
                           ),
                         ),
@@ -382,29 +400,26 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   ),
                 ),
                 
-                SizedBox(height: size.height * 0.02),
+                SizedBox(height: nameSpacing),
                 
                 // Name
                 Text(
                   userName,
                   style: poppinsStyle(
-                    fontSize: isSmallScreen ? 22 : 26,
+                    fontSize: nameFontSize,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF003060),
                   ),
                   textAlign: TextAlign.center,
                 ),
                 
-                SizedBox(height: size.height * 0.04),
+                SizedBox(height: menuSpacing),
                 
                 // Menu Items Container
                 Container(
                   width: double.infinity,
                   constraints: BoxConstraints(maxWidth: 500),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: size.width * 0.05,
-                    vertical: 20,
-                  ),
+                  padding: EdgeInsets.all(containerPadding),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(20),
@@ -427,7 +442,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             _loadSavedAvatar(); // Reload avatar
                           }
                         },
-                        isSmallScreen: isSmallScreen,
+                        isSmallMobile: isSmallMobile,
+                        isMobile: isMobile,
                       ),
                       const Divider(height: 30),
                       _buildMenuItem(
@@ -441,7 +457,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             ),
                           );
                         },
-                        isSmallScreen: isSmallScreen,
+                        isSmallMobile: isSmallMobile,
+                        isMobile: isMobile,
                       ),
                       const Divider(height: 30),
                       _buildMenuItem(
@@ -455,22 +472,20 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             ),
                           );
                         },
-                        isSmallScreen: isSmallScreen,
+                        isSmallMobile: isSmallMobile,
+                        isMobile: isMobile,
                       ),
                     ],
                   ),
                 ),
                 
-                SizedBox(height: size.height * 0.03),
+                SizedBox(height: containerSpacing),
                 
                 // Logout and Delete Container
                 Container(
                   width: double.infinity,
                   constraints: BoxConstraints(maxWidth: 500),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: size.width * 0.05,
-                    vertical: 20,
-                  ),
+                  padding: EdgeInsets.all(containerPadding),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(20),
@@ -483,7 +498,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                         onTap: () {
                           LogoutModule.showLogoutDialog(context);
                         },
-                        isSmallScreen: isSmallScreen,
+                        isSmallMobile: isSmallMobile,
+                        isMobile: isMobile,
                       ),
                       const Divider(height: 30),
                       _buildMenuItem(
@@ -492,7 +508,8 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                         onTap: () {
                           DeleteAccountModule.showDeleteAccountDialog(context);
                         },
-                        isSmallScreen: isSmallScreen,
+                        isSmallMobile: isSmallMobile,
+                        isMobile: isMobile,
                       ),
                     ],
                   ),
@@ -502,20 +519,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+      bottomNavigationBar: Builder(
+        builder: (context) {
+          final navIconSize = isSmallMobile ? 28.0 : (isMobile ? 30.0 : 32.0);
+          
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: selectedNavIndex,
-          onTap: (index) {
+            child: BottomNavigationBar(
+              currentIndex: selectedNavIndex,
+              onTap: (index) {
             setState(() {
               _iconAnimationControllers[selectedNavIndex].reverse();
               selectedNavIndex = index;
@@ -579,45 +600,51 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
           showUnselectedLabels: false,
           elevation: 0,
           items: [
-            BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(
-                Icons.home_rounded,
-                Icons.home_rounded,
-                0,
-              ),
-              label: 'Home',
+                BottomNavigationBarItem(
+                  icon: _buildAnimatedIcon(
+                    Icons.home_rounded,
+                    Icons.home_rounded,
+                    0,
+                    navIconSize,
+                  ),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: _buildAnimatedIcon(
+                    Icons.menu_book_rounded,
+                    Icons.menu_book_rounded,
+                    1,
+                    navIconSize,
+                  ),
+                  label: 'Bookmarks',
+                ),
+                BottomNavigationBarItem(
+                  icon: _buildAnimatedIcon(
+                    Icons.chat_bubble_rounded,
+                    Icons.chat_bubble_rounded,
+                    2,
+                    navIconSize,
+                  ),
+                  label: 'Messages',
+                ),
+                BottomNavigationBarItem(
+                  icon: _buildAnimatedIcon(
+                    Icons.person_rounded,
+                    Icons.person_rounded,
+                    3,
+                    navIconSize,
+                  ),
+                  label: 'Profile',
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(
-                Icons.menu_book_rounded,
-                Icons.menu_book_rounded,
-                1,
-              ),
-              label: 'Bookmarks',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(
-                Icons.chat_bubble_rounded,
-                Icons.chat_bubble_rounded,
-                2,
-              ),
-              label: 'Messages',
-            ),
-            BottomNavigationBarItem(
-              icon: _buildAnimatedIcon(
-                Icons.person_rounded,
-                Icons.person_rounded,
-                3,
-              ),
-              label: 'Profile',
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index) {
+  Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index, double iconSize) {
     return AnimatedBuilder(
       animation: _iconAnimationControllers[index],
       builder: (context, child) {
@@ -640,7 +667,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             scale: scaleValue,
             child: Icon(
               selectedNavIndex == index ? filledIcon : outlinedIcon,
-              size: 32,
+              size: iconSize,
               color: selectedNavIndex == index
                   ? const Color(0xFFD67730)
                   : const Color(0xFF003060),
@@ -655,17 +682,24 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
     required IconData icon,
     required String title,
     required VoidCallback onTap,
-    required bool isSmallScreen,
+    required bool isSmallMobile,
+    required bool isMobile,
   }) {
+    final iconContainerPadding = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    final iconSize = isSmallMobile ? 24.0 : (isMobile ? 26.0 : 28.0);
+    final iconTextSpacing = isSmallMobile ? 15.0 : (isMobile ? 17.0 : 20.0);
+    final textFontSize = isSmallMobile ? 15.0 : (isMobile ? 16.0 : 17.0);
+    final verticalPadding = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: verticalPadding),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(iconContainerPadding),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
@@ -673,15 +707,15 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
               child: Icon(
                 icon,
                 color: const Color(0xFF003060),
-                size: isSmallScreen ? 24 : 28,
+                size: iconSize,
               ),
             ),
-            SizedBox(width: isSmallScreen ? 15 : 20),
+            SizedBox(width: iconTextSpacing),
             Expanded(
               child: Text(
                 title,
                 style: poppinsStyle(
-                  fontSize: isSmallScreen ? 15 : 17,
+                  fontSize: textFontSize,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFF003060),
                 ),

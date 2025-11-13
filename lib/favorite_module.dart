@@ -134,16 +134,24 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            _buildCategoryTabs(),
+            _buildHeader(isSmallMobile, isMobile, isTablet),
+            _buildCategoryTabs(isSmallMobile, isMobile),
             Expanded(
-              child: _buildContent(),
+              child: _buildContent(isSmallMobile, isMobile, isTablet),
             ),
           ],
         ),
@@ -224,19 +232,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildHeader() {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
+  Widget _buildHeader(bool isSmallMobile, bool isMobile, bool isTablet) {
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 32.0 : 40.0));
+    final verticalPadding = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    final titleFontSize = isSmallMobile ? 28.0 : (isMobile ? 32.0 : (isTablet ? 36.0 : 40.0));
     
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 16.0 : 20.0,
-        vertical: isSmallScreen ? 12.0 : 16.0,
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
       ),
       child: Text(
         'Favorites',
         style: GoogleFonts.poppins(
-          fontSize: isSmallScreen ? 28 : 32,
+          fontSize: titleFontSize,
           fontWeight: FontWeight.bold,
           color: const Color(0xFF003060),
         ),
@@ -244,15 +254,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildCategoryTabs() {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
+  Widget _buildCategoryTabs(bool isSmallMobile, bool isMobile) {
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : 24.0);
+    final tabHeight = isSmallMobile ? 45.0 : (isMobile ? 50.0 : 55.0);
+    final tabPaddingH = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final tabPaddingV = isSmallMobile ? 8.0 : (isMobile ? 10.0 : 12.0);
+    final tabSpacing = isSmallMobile ? 10.0 : (isMobile ? 12.0 : 14.0);
+    final tabFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 15.0);
     
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16.0 : 20.0),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Container(
-        height: 50,
-        margin: const EdgeInsets.symmetric(vertical: 8),
+        height: tabHeight,
+        margin: EdgeInsets.symmetric(vertical: isMobile ? 8 : 12),
         color: Colors.white,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
@@ -262,7 +277,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
             final isSelected = category == selectedCategory;
             
             return Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: EdgeInsets.only(right: tabSpacing),
               child: GestureDetector(
                 onTap: () {
                   setState(() {
@@ -270,7 +285,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
                   });
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  padding: EdgeInsets.symmetric(horizontal: tabPaddingH, vertical: tabPaddingV),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? const Color(0xFFD67730)
@@ -287,7 +302,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
                     child: Text(
                       category,
                       style: GoogleFonts.poppins(
-                        fontSize: 14,
+                        fontSize: tabFontSize,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -302,61 +317,76 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(bool isSmallMobile, bool isMobile, bool isTablet) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          color: Color(0xFFD67730),
+          color: const Color(0xFFD67730),
+          strokeWidth: isSmallMobile ? 3 : 4,
         ),
       );
     }
     
     if (filteredFavorites.isEmpty) {
-      return _buildEmptyState();
+      return _buildEmptyState(isSmallMobile, isMobile);
     }
     
+    // Responsive grid settings
+    final gridPadding = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    final gridCrossAxisCount = isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4));
+    final gridChildAspectRatio = isSmallMobile ? 0.60 : (isMobile ? 0.65 : (isTablet ? 0.70 : 0.75));
+    final gridSpacing = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.65,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+      padding: EdgeInsets.all(gridPadding),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: gridCrossAxisCount,
+        childAspectRatio: gridChildAspectRatio,
+        crossAxisSpacing: gridSpacing,
+        mainAxisSpacing: gridSpacing,
       ),
       itemCount: filteredFavorites.length,
       itemBuilder: (context, index) {
-        return _buildBookCard(filteredFavorites[index]);
+        return _buildBookCard(filteredFavorites[index], isSmallMobile, isMobile);
       },
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isSmallMobile, bool isMobile) {
+    // Responsive sizing
+    final iconSize = isSmallMobile ? 64.0 : (isMobile ? 80.0 : 96.0);
+    final titleFontSize = isSmallMobile ? 18.0 : (isMobile ? 20.0 : 24.0);
+    final bodyFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final spacing = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
+    final bodySpacing = isSmallMobile ? 6.0 : (isMobile ? 8.0 : 10.0);
+    final horizontalPadding = isSmallMobile ? 40.0 : (isMobile ? 48.0 : 60.0);
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.favorite_border,
-            size: 80,
+            size: iconSize,
             color: Colors.grey.shade400,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: spacing),
           Text(
             'No Favorites Yet',
             style: GoogleFonts.poppins(
-              fontSize: 20,
+              fontSize: titleFontSize,
               fontWeight: FontWeight.w600,
               color: Colors.grey.shade700,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: bodySpacing),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 48),
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
             child: Text(
               'Start adding books to your favorites to see them here',
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
-                fontSize: 14,
+                fontSize: bodyFontSize,
                 color: Colors.grey.shade600,
                 height: 1.4,
               ),
@@ -367,7 +397,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildBookCard(Map<String, dynamic> book) {
+  Widget _buildBookCard(Map<String, dynamic> book, bool isSmallMobile, bool isMobile) {
+    // Responsive sizing
+    final cardPadding = isSmallMobile ? 6.0 : (isMobile ? 8.0 : 10.0);
+    final titleFontSize = isSmallMobile ? 11.0 : (isMobile ? 12.0 : 14.0);
+    final authorFontSize = isSmallMobile ? 9.0 : (isMobile ? 10.0 : 12.0);
+    final iconSize = isSmallMobile ? 40.0 : (isMobile ? 50.0 : 60.0);
+    final textSpacing = isSmallMobile ? 1.0 : (isMobile ? 2.0 : 3.0);
+    
     return GestureDetector(
       onTap: () {
         // Navigate to book detail screen
@@ -409,35 +446,35 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: Colors.grey.shade300,
-                            child: const Icon(Icons.book, size: 50, color: Colors.grey),
+                            child: Icon(Icons.book, size: iconSize, color: Colors.grey),
                           );
                         },
                       )
                     : Container(
                         color: Colors.grey.shade300,
-                        child: const Icon(Icons.book, size: 50, color: Colors.grey),
+                        child: Icon(Icons.book, size: iconSize, color: Colors.grey),
                       ),
               ),
               Padding(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(cardPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       book['title'] ?? 'Untitled',
                       style: GoogleFonts.poppins(
-                        fontSize: 12,
+                        fontSize: titleFontSize,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF003060),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: textSpacing),
                     Text(
                       book['author'] ?? 'Unknown Author',
                       style: GoogleFonts.poppins(
-                        fontSize: 10,
+                        fontSize: authorFontSize,
                         color: Colors.grey.shade600,
                       ),
                       maxLines: 1,
@@ -454,6 +491,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
   }
 
   Widget _buildAnimatedIcon(IconData outlinedIcon, IconData filledIcon, int index) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final iconSize = isSmallMobile ? 28.0 : (isMobile ? 32.0 : 36.0);
+    
     return AnimatedBuilder(
       animation: _iconAnimationControllers[index],
       builder: (context, child) {
@@ -476,7 +519,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
             scale: scaleValue,
             child: Icon(
               selectedNavIndex == index ? filledIcon : outlinedIcon,
-              size: 32,
+              size: iconSize,
               color: selectedNavIndex == index
                   ? const Color(0xFFD67730)
                   : const Color(0xFF003060),

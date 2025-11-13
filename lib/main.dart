@@ -51,12 +51,24 @@ class AppEntry extends StatelessWidget {
             theme: ThemeData(fontFamily: 'Poppins'),
             home: Scaffold(
               body: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Firebase initialization failed:\n\n$error\n\nCheck:\n1. google-services.json in android/app/\n2. Firebase Console Email/Password enabled\n3. Correct project ID & package name\n4. Internet connection',
-                    textAlign: TextAlign.center,
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final isSmallMobile = width < 360;
+                    final isMobile = width < 600;
+                    
+                    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : 32.0);
+                    final fontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+                    
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.all(horizontalPadding),
+                      child: Text(
+                        'Firebase initialization failed:\n\n$error\n\nCheck:\n1. google-services.json in android/app/\n2. Firebase Console Email/Password enabled\n3. Correct project ID & package name\n4. Internet connection',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: fontSize),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -67,8 +79,27 @@ class AppEntry extends StatelessWidget {
 
 				return MaterialApp(
 					theme: ThemeData(fontFamily: 'Poppins'),
-					home: const Scaffold(
-						body: Center(child: CircularProgressIndicator()),
+					home: Scaffold(
+						body: Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final isSmallMobile = width < 360;
+                  final isMobile = width < 600;
+                  
+                  final indicatorSize = isSmallMobile ? 36.0 : (isMobile ? 40.0 : 48.0);
+                  final strokeWidth = isSmallMobile ? 3.0 : (isMobile ? 3.5 : 4.0);
+                  
+                  return SizedBox(
+                    width: indicatorSize,
+                    height: indicatorSize,
+                    child: CircularProgressIndicator(
+                      strokeWidth: strokeWidth,
+                    ),
+                  );
+                },
+              ),
+            ),
 					),
 				);
 			},

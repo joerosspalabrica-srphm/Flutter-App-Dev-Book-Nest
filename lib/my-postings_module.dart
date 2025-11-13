@@ -124,7 +124,21 @@ class _PostingsScreenState extends State<PostingsScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing variables
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 28.0 : 36.0));
+    final headerVerticalPadding = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final backButtonPadding = isSmallMobile ? 8.0 : (isMobile ? 9.0 : 10.0);
+    final backIconSize = isSmallMobile ? 20.0 : (isMobile ? 22.0 : 24.0);
+    final titleFontSize = isSmallMobile ? 24.0 : (isMobile ? 26.0 : (isTablet ? 28.0 : 32.0));
+    final titleSpacing = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final spacing = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -134,8 +148,8 @@ class _PostingsScreenState extends State<PostingsScreen> {
             // Header with Back Button and Title
             Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: size.width * 0.05,
-                vertical: 20,
+                horizontal: horizontalPadding,
+                vertical: headerVerticalPadding,
               ),
               child: Row(
                 children: [
@@ -150,23 +164,23 @@ class _PostingsScreenState extends State<PostingsScreen> {
                     },
                     borderRadius: BorderRadius.circular(30),
                     child: Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(backButtonPadding),
                       decoration: const BoxDecoration(
                         color: Color(0xFF003060),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back,
                         color: Colors.white,
-                        size: 24,
+                        size: backIconSize,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 20),
+                  SizedBox(width: titleSpacing),
                   Text(
                     'Postings',
                     style: GoogleFonts.poppins(
-                      fontSize: isSmallScreen ? 24 : 28,
+                      fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF003060),
                     ),
@@ -175,20 +189,25 @@ class _PostingsScreenState extends State<PostingsScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            SizedBox(height: spacing),
 
             // Category Filter Chips
             SizedBox(
-              height: 45,
+              height: isSmallMobile ? 40.0 : (isMobile ? 42.0 : 45.0),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
                   final category = categories[index];
                   final isSelected = selectedCategory == category;
+                  final categoryPaddingH = isSmallMobile ? 20.0 : (isMobile ? 22.0 : 24.0);
+                  final categoryPaddingV = isSmallMobile ? 8.0 : (isMobile ? 9.0 : 10.0);
+                  final categoryFontSize = isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0);
+                  final categorySpacing = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+                  
                   return Padding(
-                    padding: const EdgeInsets.only(right: 12),
+                    padding: EdgeInsets.only(right: categorySpacing),
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
@@ -196,9 +215,9 @@ class _PostingsScreenState extends State<PostingsScreen> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 10,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: categoryPaddingH,
+                          vertical: categoryPaddingV,
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
@@ -222,7 +241,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
                         child: Text(
                           category,
                           style: GoogleFonts.poppins(
-                            fontSize: 14,
+                            fontSize: categoryFontSize,
                             fontWeight: FontWeight.w500,
                             color: isSelected
                                 ? Colors.white
@@ -239,65 +258,76 @@ class _PostingsScreenState extends State<PostingsScreen> {
             // Books Grid or Empty State
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFD67730),
+                  ? Center(
+                      child: SizedBox(
+                        width: isSmallMobile ? 36.0 : (isMobile ? 40.0 : 48.0),
+                        height: isSmallMobile ? 36.0 : (isMobile ? 40.0 : 48.0),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFD67730),
+                          strokeWidth: isSmallMobile ? 3.0 : (isMobile ? 3.5 : 4.0),
+                        ),
                       ),
                     )
                   : filteredBooks.isEmpty
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.library_books_outlined,
-                                size: 80,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                selectedCategory == 'All'
-                                    ? 'You have no postings'
-                                    : 'No books in $selectedCategory',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.library_books_outlined,
+                                  size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
+                                  color: Colors.grey[400],
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 48),
-                                child: Text(
+                                SizedBox(height: spacing),
+                                Text(
                                   selectedCategory == 'All'
-                                      ? 'Start posting books to share with others'
-                                      : 'You haven\'t posted any books in this category yet',
-                                  textAlign: TextAlign.center,
+                                      ? 'You have no postings'
+                                      : 'No books in $selectedCategory',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                    height: 1.4,
+                                    fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[700],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: spacing * 0.5),
+                                Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isSmallMobile ? 24.0 : (isMobile ? 36.0 : 48.0),
+                                  ),
+                                  child: Text(
+                                    selectedCategory == 'All'
+                                        ? 'Start posting books to share with others'
+                                        : 'You haven\'t posted any books in this category yet',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                                      color: Colors.grey[600],
+                                      height: 1.4,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         )
                       : Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: size.width * 0.05,
-                            vertical: 20,
+                            horizontal: horizontalPadding,
+                            vertical: spacing,
                           ),
                           child: GridView.builder(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.65,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4)),
+                              childAspectRatio: isSmallMobile ? 0.60 : (isMobile ? 0.65 : 0.70),
+                              crossAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
+                              mainAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
                             ),
                             itemCount: filteredBooks.length,
                             itemBuilder: (context, index) {
-                              return _buildBookCard(filteredBooks[index]);
+                              return _buildBookCard(filteredBooks[index], isSmallMobile, isMobile);
                             },
                           ),
                         ),
@@ -308,7 +338,14 @@ class _PostingsScreenState extends State<PostingsScreen> {
     );
   }
 
-  Widget _buildBookCard(Map<String, dynamic> book) {
+  Widget _buildBookCard(Map<String, dynamic> book, bool isSmallMobile, bool isMobile) {
+    final cardRadius = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final overlayPadding = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    final iconSize = isSmallMobile ? 40.0 : (isMobile ? 45.0 : 50.0);
+    final titleFontSize = isSmallMobile ? 11.0 : (isMobile ? 11.5 : 12.0);
+    final genreFontSize = isSmallMobile ? 9.0 : (isMobile ? 9.5 : 10.0);
+    final textSpacing = isSmallMobile ? 1.0 : (isMobile ? 1.5 : 2.0);
+    
     return GestureDetector(
       onTap: () {
         // Navigate to book detail screen
@@ -327,7 +364,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(cardRadius),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.15),
@@ -337,7 +374,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(cardRadius),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -348,9 +385,9 @@ class _PostingsScreenState extends State<PostingsScreen> {
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: Colors.grey[300],
-                          child: const Icon(
+                          child: Icon(
                             Icons.book,
-                            size: 50,
+                            size: iconSize,
                             color: Colors.grey,
                           ),
                         );
@@ -358,9 +395,9 @@ class _PostingsScreenState extends State<PostingsScreen> {
                     )
                   : Container(
                       color: Colors.grey[300],
-                      child: const Icon(
+                      child: Icon(
                         Icons.book,
-                        size: 50,
+                        size: iconSize,
                         color: Colors.grey,
                       ),
                     ),
@@ -370,7 +407,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(overlayPadding),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
@@ -388,18 +425,18 @@ class _PostingsScreenState extends State<PostingsScreen> {
                       Text(
                         book['title'] ?? 'Untitled',
                         style: GoogleFonts.poppins(
-                          fontSize: 12,
+                          fontSize: titleFontSize,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: textSpacing),
                       Text(
                         book['genre'] ?? 'Unknown Genre',
                         style: GoogleFonts.poppins(
-                          fontSize: 10,
+                          fontSize: genreFontSize,
                           color: Colors.white70,
                         ),
                         maxLines: 1,

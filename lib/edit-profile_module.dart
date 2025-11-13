@@ -23,6 +23,12 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   
+  // Edit mode controls
+  bool _isEditingName = false;
+  bool _isEditingCurrentPassword = false;
+  bool _isEditingNewPassword = false;
+  bool _isEditingConfirmPassword = false;
+  
   // For reset functionality
   String _originalName = '';
   
@@ -127,6 +133,11 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
       currentPasswordController.text = '';
       passwordController.text = '';
       confirmPasswordController.text = '';
+      // Reset edit modes
+      _isEditingName = false;
+      _isEditingCurrentPassword = false;
+      _isEditingNewPassword = false;
+      _isEditingConfirmPassword = false;
     });
     _showSnackBar('Changes reset', isError: false);
   }
@@ -293,6 +304,33 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 12.0 : (isMobile ? 16.0 : (isTablet ? 24.0 : 32.0));
+    final avatarSize = isSmallMobile ? 80.0 : (isMobile ? 100.0 : (isTablet ? 120.0 : 140.0));
+    final avatarFontSize = isSmallMobile ? 32.0 : (isMobile ? 40.0 : (isTablet ? 48.0 : 56.0));
+    final checkIconSize = isSmallMobile ? 14.0 : (isMobile ? 16.0 : 18.0);
+    final nameFontSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : (isTablet ? 28.0 : 32.0));
+    final labelFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final counterFontSize = isSmallMobile ? 11.0 : (isMobile ? 12.0 : 13.0);
+    final hintFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 16.0);
+    final iconSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final buttonFontSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final resetFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 15.0);
+    final cardPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : 24.0);
+    final cardMarginH = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 40.0 : 60.0));
+    final spacing = isSmallMobile ? 20.0 : (isMobile ? 30.0 : 40.0);
+    final fieldSpacing = isSmallMobile ? 16.0 : (isMobile ? 20.0 : 24.0);
+    final buttonPaddingH = isSmallMobile ? 32.0 : (isMobile ? 40.0 : 50.0);
+    final buttonPaddingV = isSmallMobile ? 12.0 : (isMobile ? 15.0 : 18.0);
+    final buttonGap = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
     
     return Scaffold(
       backgroundColor: Colors.white,
@@ -308,9 +346,10 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                 color: Color(0xFF003366),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back,
                 color: Colors.white,
+                size: iconSize,
               ),
             ),
           ),
@@ -339,17 +378,17 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
           // Main content
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(horizontalPadding),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  SizedBox(height: isMobile ? 20 : 30),
             
             // Profile Avatar
             Stack(
               children: [
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: avatarSize,
+                  height: avatarSize,
                   decoration: BoxDecoration(
                     color: const Color(0xFF5BA3E0),
                     shape: BoxShape.circle,
@@ -367,7 +406,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                                 ? usernameController.text[0] 
                                 : user?.email?[0] ?? 'U').toUpperCase(),
                             style: GoogleFonts.poppins(
-                              fontSize: 40,
+                              fontSize: avatarFontSize,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -379,22 +418,22 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: EdgeInsets.all(isSmallMobile ? 3 : 4),
                     decoration: const BoxDecoration(
                       color: Color(0xFFFF6B35),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check,
                       color: Colors.white,
-                      size: 16,
+                      size: checkIconSize,
                     ),
                   ),
                 ),
               ],
             ),
             
-            const SizedBox(height: 16),
+            SizedBox(height: isMobile ? 16 : 20),
             
             // User Name
             Text(
@@ -402,19 +441,19 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ? usernameController.text 
                   : user?.displayName ?? 'User',
               style: GoogleFonts.poppins(
-                fontSize: 24,
+                fontSize: nameFontSize,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
               textAlign: TextAlign.center,
             ),
             
-            const SizedBox(height: 30),
+            SizedBox(height: spacing),
             
             // Edit Card
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              padding: const EdgeInsets.all(20),
+              margin: EdgeInsets.symmetric(horizontal: cardMarginH, vertical: 10),
+              padding: EdgeInsets.all(cardPadding),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -436,7 +475,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       Text(
                         'Name:',
                         style: GoogleFonts.poppins(
-                          fontSize: 14,
+                          fontSize: labelFontSize,
                           fontWeight: FontWeight.w500,
                           color: Colors.black,
                         ),
@@ -449,7 +488,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                           return Text(
                             '$count/$_nameMaxLength',
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
+                              fontSize: counterFontSize,
                               color: isOverLimit ? Colors.red : Colors.grey,
                               fontWeight: isOverLimit ? FontWeight.bold : FontWeight.normal,
                             ),
@@ -460,11 +499,13 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ),
                   TextField(
                     controller: usernameController,
+                    enabled: _isEditingName,
                     maxLength: _nameMaxLength,
                     decoration: InputDecoration(
                       hintText: 'Enter your name',
                       hintStyle: GoogleFonts.poppins(
                         color: Colors.grey,
+                        fontSize: hintFontSize,
                       ),
                       border: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFCCCCCC)),
@@ -475,33 +516,49 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF003366)),
                       ),
+                      disabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
+                      ),
                       counterText: '', // Hide default counter
-                      suffixIcon: const Icon(
-                        Icons.edit,
-                        color: Color(0xFFFF6B35),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _isEditingName ? Icons.check : Icons.edit,
+                          color: _isEditingName ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                          size: iconSize,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isEditingName = !_isEditingName;
+                          });
+                        },
                       ),
                     ),
-                    style: GoogleFonts.poppins(),
+                    style: GoogleFonts.poppins(
+                      fontSize: hintFontSize,
+                      color: _isEditingName ? Colors.black : Colors.black54,
+                    ),
                   ),
                   
-                  const SizedBox(height: 20),
+                  SizedBox(height: fieldSpacing),
                   
                   // Current Password Field
                   Text(
                     'Current Password:',
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
+                      fontSize: labelFontSize,
                       fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
                   ),
                   TextField(
                     controller: currentPasswordController,
+                    enabled: _isEditingCurrentPassword,
                     obscureText: _obscureCurrentPassword,
                     decoration: InputDecoration(
                       hintText: 'Enter current password',
                       hintStyle: GoogleFonts.poppins(
                         color: Colors.grey,
+                        fontSize: hintFontSize,
                       ),
                       border: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFCCCCCC)),
@@ -512,51 +569,68 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF003366)),
                       ),
+                      disabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
+                      ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (_isEditingCurrentPassword)
+                            IconButton(
+                              icon: Icon(
+                                _obscureCurrentPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.grey,
+                                size: iconSize,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureCurrentPassword = !_obscureCurrentPassword;
+                                });
+                              },
+                            ),
                           IconButton(
                             icon: Icon(
-                              _obscureCurrentPassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Colors.grey,
+                              _isEditingCurrentPassword ? Icons.check : Icons.edit,
+                              color: _isEditingCurrentPassword ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                              size: iconSize,
                             ),
                             onPressed: () {
                               setState(() {
-                                _obscureCurrentPassword = !_obscureCurrentPassword;
+                                _isEditingCurrentPassword = !_isEditingCurrentPassword;
                               });
                             },
                           ),
-                          const Icon(
-                            Icons.edit,
-                            color: Color(0xFFFF6B35),
-                          ),
-                          const SizedBox(width: 8),
                         ],
                       ),
                     ),
-                    style: GoogleFonts.poppins(),
+                    style: GoogleFonts.poppins(
+                      fontSize: hintFontSize,
+                      color: _isEditingCurrentPassword ? Colors.black : Colors.black54,
+                    ),
                   ),
                   
-                  const SizedBox(height: 20),
+                  SizedBox(height: fieldSpacing),
                   
                   // New Password Field
                   Text(
                     'New Password:',
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
+                      fontSize: labelFontSize,
                       fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
                   ),
                   TextField(
                     controller: passwordController,
+                    enabled: _isEditingNewPassword,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       hintText: 'Enter new password (optional)',
                       hintStyle: GoogleFonts.poppins(
                         color: Colors.grey,
+                        fontSize: hintFontSize,
                       ),
                       border: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFFCCCCCC)),
@@ -567,40 +641,55 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF003366)),
                       ),
+                      disabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
+                      ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (_isEditingNewPassword)
+                            IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.grey,
+                                size: iconSize,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
                           IconButton(
                             icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Colors.grey,
+                              _isEditingNewPassword ? Icons.check : Icons.edit,
+                              color: _isEditingNewPassword ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                              size: iconSize,
                             ),
                             onPressed: () {
                               setState(() {
-                                _obscurePassword = !_obscurePassword;
+                                _isEditingNewPassword = !_isEditingNewPassword;
                               });
                             },
                           ),
-                          const Icon(
-                            Icons.edit,
-                            color: Color(0xFFFF6B35),
-                          ),
-                          const SizedBox(width: 8),
                         ],
                       ),
                     ),
-                    style: GoogleFonts.poppins(),
+                    style: GoogleFonts.poppins(
+                      fontSize: hintFontSize,
+                      color: _isEditingNewPassword ? Colors.black : Colors.black54,
+                    ),
                   ),
                   
-                  const SizedBox(height: 20),
+                  SizedBox(height: fieldSpacing),
                   
                   // Confirm Password Field
                   Text(
                     'Confirm New Password:',
                     style: GoogleFonts.poppins(
-                      fontSize: 14,
+                      fontSize: labelFontSize,
                       fontWeight: FontWeight.w500,
                       color: Colors.black,
                     ),
@@ -615,11 +704,13 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       
                       return TextField(
                         controller: confirmPasswordController,
+                        enabled: _isEditingConfirmPassword,
                         obscureText: _obscureConfirmPassword,
                         decoration: InputDecoration(
                           hintText: 'Re-enter new password',
                           hintStyle: GoogleFonts.poppins(
                             color: Colors.grey,
+                            fontSize: hintFontSize,
                           ),
                           border: const UnderlineInputBorder(
                             borderSide: BorderSide(color: Color(0xFFCCCCCC)),
@@ -630,32 +721,52 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                           focusedBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(color: Color(0xFF003366)),
                           ),
+                          disabledBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFFEEEEEE)),
+                          ),
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(
-                                icon: Icon(
-                                  _obscureConfirmPassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: Colors.grey,
+                              if (_isEditingConfirmPassword)
+                                IconButton(
+                                  icon: Icon(
+                                    _obscureConfirmPassword
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: Colors.grey,
+                                    size: iconSize,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                                    });
+                                  },
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                                  });
-                                },
-                              ),
-                              if (!isEmpty)
+                              if (!isEmpty && _isEditingConfirmPassword)
                                 Icon(
                                   isMatching ? Icons.check_circle : Icons.cancel,
                                   color: isMatching ? const Color(0xFF4CAF50) : const Color(0xFFE53935),
+                                  size: iconSize,
                                 ),
-                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: Icon(
+                                  _isEditingConfirmPassword ? Icons.check : Icons.edit,
+                                  color: _isEditingConfirmPassword ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                                  size: iconSize,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isEditingConfirmPassword = !_isEditingConfirmPassword;
+                                  });
+                                },
+                              ),
                             ],
                           ),
                         ),
-                        style: GoogleFonts.poppins(),
+                        style: GoogleFonts.poppins(
+                          fontSize: hintFontSize,
+                          color: _isEditingConfirmPassword ? Colors.black : Colors.black54,
+                        ),
                       );
                     },
                   ),
@@ -668,21 +779,21 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
             // Reset Button
             TextButton.icon(
               onPressed: _isLoading ? null : _resetChanges,
-              icon: const Icon(Icons.refresh, color: Color(0xFF003060)),
+              icon: Icon(Icons.refresh, color: const Color(0xFF003060), size: iconSize),
               label: Text(
                 'Reset Changes',
                 style: GoogleFonts.poppins(
-                  fontSize: 14,
+                  fontSize: resetFontSize,
                   color: const Color(0xFF003060),
                 ),
               ),
             ),
             
-            const SizedBox(height: 10),
+            SizedBox(height: isMobile ? 10 : 15),
             
             // Action Buttons Row (Cancel and Done)
             Padding(
-              padding: const EdgeInsets.only(bottom: 20),
+              padding: EdgeInsets.only(bottom: isMobile ? 20 : 30),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -691,9 +802,9 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                     onPressed: _isLoading ? null : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFF003060), width: 2),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 15,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: buttonPaddingH,
+                        vertical: buttonPaddingV,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -702,14 +813,14 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                     child: Text(
                       'Cancel',
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
+                        fontSize: buttonFontSize,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003060),
                       ),
                     ),
                   ),
                   
-                  const SizedBox(width: 16),
+                  SizedBox(width: buttonGap),
                   
                   // Done Button with Animation
                   ScaleTransition(
@@ -718,9 +829,9 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       onPressed: _isLoading ? null : _onDonePressed,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF6B35),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 50,
-                          vertical: 15,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: buttonPaddingH + 10,
+                          vertical: buttonPaddingV,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -728,10 +839,10 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                         elevation: 2,
                       ),
                       child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
+                          ? SizedBox(
+                              width: iconSize,
+                              height: iconSize,
+                              child: const CircularProgressIndicator(
                                 color: Colors.white,
                                 strokeWidth: 2,
                               ),
@@ -739,7 +850,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                           : Text(
                               'Done',
                               style: GoogleFonts.poppins(
-                                fontSize: 18,
+                                fontSize: buttonFontSize,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
@@ -750,7 +861,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
               ),
             ),
             
-            const SizedBox(height: 20),
+            SizedBox(height: isMobile ? 20 : 30),
                 ],
               ),
             ),

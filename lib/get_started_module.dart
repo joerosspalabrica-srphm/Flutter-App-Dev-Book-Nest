@@ -45,6 +45,34 @@ class BookNestScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    final height = size.height;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing
+    final logoTopPadding = isSmallMobile ? height * 0.04 : (isMobile ? height * 0.06 : (isTablet ? height * 0.08 : height * 0.1));
+    final logoWidth = isSmallMobile ? width * 0.85 : (isMobile ? width * 0.9 : (isTablet ? width * 0.7 : width * 0.5));
+    final logoHeight = isSmallMobile ? height * 0.5 : (isMobile ? height * 0.55 : height * 0.6);
+    
+    final contentHorizontalPadding = isSmallMobile ? width * 0.06 : (isMobile ? width * 0.08 : (isTablet ? width * 0.12 : width * 0.15));
+    final contentVerticalPadding = isSmallMobile ? height * 0.03 : (isMobile ? height * 0.04 : height * 0.05);
+    
+    final titleFontSize = isSmallMobile ? 18.0 : (isMobile ? 20.0 : (isTablet ? 24.0 : 28.0));
+    final subtitleFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : (isTablet ? 16.0 : 18.0));
+    final subtitleHorizontalPadding = isSmallMobile ? width * 0.03 : (isMobile ? width * 0.05 : (isTablet ? width * 0.1 : width * 0.15));
+    
+    final titleBottomSpacing = isSmallMobile ? height * 0.02 : (isMobile ? height * 0.025 : height * 0.03);
+    final subtitleBottomSpacing = isSmallMobile ? height * 0.03 : (isMobile ? height * 0.035 : height * 0.04);
+    
+    final buttonWidth = isSmallMobile ? width * 0.85 : (isMobile ? width * 0.8 : (isTablet ? width * 0.6 : width * 0.4));
+    final buttonHeight = isSmallMobile ? 48.0 : (isMobile ? 52.0 : (isTablet ? 56.0 : 60.0));
+    final buttonFontSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : (isTablet ? 20.0 : 22.0));
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -72,10 +100,10 @@ class BookNestScreen extends StatelessWidget {
                       ),
                       Center(
                         child: Padding(
-                          padding: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.08),
+                          padding: EdgeInsets.only(top: logoTopPadding),
                           child: SizedBox(
-                            width: MediaQuery.of(context).size.width * 0.95,
-                            height: MediaQuery.of(context).size.height * 0.6,
+                            width: logoWidth,
+                            height: logoHeight,
                             child: Image.asset(
                               "assets/logo.png",
                               fit: BoxFit.contain,
@@ -95,8 +123,8 @@ class BookNestScreen extends StatelessWidget {
                 width: double.infinity,
                 color: Colors.white,
                 padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width * 0.08,
-                  vertical: MediaQuery.of(context).size.height * 0.04,
+                  horizontal: contentHorizontalPadding,
+                  vertical: contentVerticalPadding,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -107,25 +135,25 @@ class BookNestScreen extends StatelessWidget {
                       "Where Every Borrowed Book\nTells a New Story.",
                       textAlign: TextAlign.center,
                       style: poppinsStyle(
-                        fontSize: MediaQuery.of(context).size.width * 0.055,
+                        fontSize: titleFontSize,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF1E3A8A),
                         height: 1.3,
                       ),
                     ),
                     
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+                    SizedBox(height: titleBottomSpacing),
                     
                     // Subtitle
                     Padding(
                       padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).size.width * 0.05,
+                        horizontal: subtitleHorizontalPadding,
                       ),
                       child: Text(
                         "A book is more than just words on a page. It's a shared experience that can connect people.",
                         textAlign: TextAlign.center,
                         style: poppinsStyle(
-                          fontSize: MediaQuery.of(context).size.width * 0.035,
+                          fontSize: subtitleFontSize,
                           fontWeight: FontWeight.w400,
                           color: const Color(0xFF64748B),
                           height: 1.4,
@@ -133,12 +161,12 @@ class BookNestScreen extends StatelessWidget {
                       ),
                     ),
                     
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                    SizedBox(height: subtitleBottomSpacing),
                     
                     // Get Started Button
                     SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.8,
-                      height: 50,
+                      width: buttonWidth,
+                      height: buttonHeight,
                       child: ElevatedButton(
                         onPressed: () {
                           // Navigate to the Register screen from the sign-up module
@@ -159,7 +187,7 @@ class BookNestScreen extends StatelessWidget {
                         child: Text(
                           "Get Started",
                           style: poppinsStyle(
-                            fontSize: MediaQuery.of(context).size.width * 0.04,
+                            fontSize: buttonFontSize,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),

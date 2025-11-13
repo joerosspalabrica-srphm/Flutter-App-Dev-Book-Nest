@@ -4,29 +4,46 @@ import 'get_started_module.dart';
 
 class LogoutModule {
   static Future<void> showLogoutDialog(BuildContext context) async {
+    // Get screen size and define responsive breakpoints
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing variables
+    final dialogBorderRadius = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final titleFontSize = isSmallMobile ? 20.0 : (isMobile ? 22.0 : (isTablet ? 24.0 : 26.0));
+    final contentFontSize = isSmallMobile ? 14.0 : (isMobile ? 15.0 : (isTablet ? 16.0 : 17.0));
+    final buttonFontSize = isSmallMobile ? 14.0 : (isMobile ? 15.0 : (isTablet ? 16.0 : 17.0));
+    final buttonPaddingH = isSmallMobile ? 20.0 : (isMobile ? 22.0 : (isTablet ? 24.0 : 28.0));
+    final buttonPaddingV = isSmallMobile ? 10.0 : (isMobile ? 11.0 : (isTablet ? 12.0 : 13.0));
+    final buttonBorderRadius = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    
     return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(dialogBorderRadius),
           ),
           backgroundColor: Colors.white,
-          title: const Text(
+          title: Text(
             'Log Out',
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,
               color: Color(0xFF003060),
-              fontSize: 24,
+              fontSize: titleFontSize,
             ),
           ),
-          content: const Text(
+          content: Text(
             'Are you sure you want to log out?',
             style: TextStyle(
               fontFamily: 'Poppins',
-              fontSize: 16,
+              fontSize: contentFontSize,
               color: Colors.grey,
             ),
           ),
@@ -36,14 +53,17 @@ class LogoutModule {
                 Navigator.of(context).pop(); // Close the dialog
               },
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: buttonPaddingH,
+                  vertical: buttonPaddingV,
+                ),
               ),
-              child: const Text(
+              child: Text(
                 'No',
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   color: Colors.grey,
-                  fontSize: 16,
+                  fontSize: buttonFontSize,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -84,17 +104,20 @@ class LogoutModule {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFD67730),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: buttonPaddingH,
+                  vertical: buttonPaddingV,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(buttonBorderRadius),
                 ),
                 elevation: 0,
               ),
-              child: const Text(
+              child: Text(
                 'Yes',
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 16,
+                  fontSize: buttonFontSize,
                   fontWeight: FontWeight.w600,
                 ),
               ),

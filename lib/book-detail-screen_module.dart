@@ -121,6 +121,25 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     final isOwner = currentUser?.uid == widget.book['ownerId'];
+    
+    // Get screen dimensions
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    // Responsive breakpoints
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 40.0 : 60.0));
+    final bookCoverHeight = isSmallMobile ? 350.0 : (isMobile ? 400.0 : (isTablet ? 450.0 : 500.0));
+    final bookCoverWidth = isSmallMobile ? 200.0 : (isMobile ? 250.0 : (isTablet ? 280.0 : 320.0));
+    final bookCoverImageHeight = isSmallMobile ? 280.0 : (isMobile ? 350.0 : (isTablet ? 380.0 : 420.0));
+    final titleFontSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : (isTablet ? 28.0 : 32.0));
+    final sectionTitleSize = isSmallMobile ? 16.0 : (isMobile ? 18.0 : (isTablet ? 20.0 : 22.0));
+    final bodyTextSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : (isTablet ? 15.0 : 16.0));
+    final smallTextSize = isSmallMobile ? 11.0 : (isMobile ? 12.0 : (isTablet ? 13.0 : 14.0));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -137,7 +156,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 children: [
                   // Book Cover with gradient background and logo
                   Container(
-                    height: 400,
+                    height: bookCoverHeight,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -172,8 +191,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         // Book cover
                         Center(
                           child: Container(
-                            width: 250,
-                            height: 350,
+                            width: bookCoverWidth,
+                            height: bookCoverImageHeight,
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
@@ -211,7 +230,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     child: InkWell(
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.all(isMobile ? 12 : 14),
                         decoration: BoxDecoration(
                           color: const Color(0xFF003060),
                           shape: BoxShape.circle,
@@ -223,10 +242,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_back,
                           color: Colors.white,
-                          size: 24,
+                          size: isMobile ? 24 : 28,
                         ),
                       ),
                     ),
@@ -234,11 +253,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ],
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 24 : 32),
 
               // Book Title, Genre, and Favorite Icon
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -250,16 +269,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           Text(
                             widget.book['title'] ?? 'Untitled',
                             style: GoogleFonts.poppins(
-                              fontSize: 24,
+                              fontSize: titleFontSize,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF003060),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: isMobile ? 4 : 6),
                           Text(
                             widget.book['genre'] ?? 'Unknown Genre',
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
+                              fontSize: bodyTextSize,
                               color: Colors.grey,
                             ),
                           ),
@@ -271,7 +290,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     InkWell(
                       onTap: _toggleFavorite,
                       child: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.all(isMobile ? 12 : 14),
                         decoration: BoxDecoration(
                           color: _isFavorite 
                             ? const Color(0xFFD67730) 
@@ -288,7 +307,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         child: Icon(
                           _isFavorite ? Icons.favorite : Icons.favorite_border,
                           color: _isFavorite ? Colors.white : Colors.grey[600],
-                          size: 24,
+                          size: isMobile ? 24 : 28,
                         ),
                       ),
                     ),
@@ -296,11 +315,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 24 : 32),
 
               // Info Grid (Author, Condition, Genre, Language)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Row(
                   children: [
                     Expanded(
@@ -308,24 +327,30 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         icon: Icons.person,
                         label: 'Author',
                         value: widget.book['author'] ?? 'Unknown',
+                        isMobile: isMobile,
+                        smallTextSize: smallTextSize,
+                        bodyTextSize: bodyTextSize,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: isMobile ? 12 : 16),
                     Expanded(
                       child: _buildInfoCard(
                         icon: Icons.verified,
                         label: 'Condition',
                         value: widget.book['condition'] ?? 'Used',
+                        isMobile: isMobile,
+                        smallTextSize: smallTextSize,
+                        bodyTextSize: bodyTextSize,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 12 : 16),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Row(
                   children: [
                     Expanded(
@@ -333,41 +358,47 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         icon: Icons.category,
                         label: 'Genre',
                         value: widget.book['genre'] ?? 'Unknown',
+                        isMobile: isMobile,
+                        smallTextSize: smallTextSize,
+                        bodyTextSize: bodyTextSize,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: isMobile ? 12 : 16),
                     Expanded(
                       child: _buildInfoCard(
                         icon: Icons.translate,
                         label: 'Language',
                         value: widget.book['language'] ?? 'Unknown',
+                        isMobile: isMobile,
+                        smallTextSize: smallTextSize,
+                        bodyTextSize: bodyTextSize,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 24 : 32),
 
               // About this Book
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'About this Book',
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
+                        fontSize: sectionTitleSize,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003060),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: isMobile ? 12 : 16),
                     Text(
                       widget.book['about'] ?? 'No description available.',
                       style: GoogleFonts.poppins(
-                        fontSize: 14,
+                        fontSize: bodyTextSize,
                         color: Colors.grey[700],
                         height: 1.5,
                       ),
@@ -376,23 +407,23 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 24 : 32),
 
               // Penalties Section
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Penalties',
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
+                        fontSize: sectionTitleSize,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF003060),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: isMobile ? 12 : 16),
                       _buildPenaltyItem(
                         'Late Return:',
                         'Php ${widget.book['penalties']?['lateReturn'] ?? 0}',
@@ -409,13 +440,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: isMobile ? 24 : 32),
 
               // Owner Info Card
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(isMobile ? 16 : 20),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -427,18 +458,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        radius: 28,
+                        radius: isMobile ? 28 : 32,
                         backgroundColor: const Color(0xFF4A90E2),
                         child: Text(
                           (widget.book['ownerName'] ?? 'U')[0].toUpperCase(),
                           style: GoogleFonts.poppins(
-                            fontSize: 24,
+                            fontSize: isMobile ? 24 : 28,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: isMobile ? 16 : 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,7 +477,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             Text(
                               widget.book['ownerName'] ?? 'Unknown Owner',
                               style: GoogleFonts.poppins(
-                                fontSize: 16,
+                                fontSize: bodyTextSize + 2,
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF003060),
                               ),
@@ -454,7 +485,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             Text(
                               'Owner',
                               style: GoogleFonts.poppins(
-                                fontSize: 12,
+                                fontSize: smallTextSize,
                                 color: Colors.grey,
                               ),
                             ),
@@ -495,7 +526,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             );
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 16 : 20, 
+                              vertical: isMobile ? 10 : 12
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFD67730),
                               borderRadius: BorderRadius.circular(8),
@@ -510,18 +544,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.message,
                                   color: Colors.white,
-                                  size: 20,
+                                  size: isMobile ? 20 : 22,
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: isMobile ? 8 : 10),
                                 Text(
                                   'Message',
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                                    fontSize: bodyTextSize,
                                   ),
                                 ),
                               ],
@@ -533,7 +567,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              SizedBox(height: isMobile ? 32 : 40),
             ],
           ),
         ),
@@ -547,9 +581,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     required IconData icon,
     required String label,
     required String value,
+    required bool isMobile,
+    required double smallTextSize,
+    required double bodyTextSize,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isMobile ? 16 : 18),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(12),
@@ -557,7 +594,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(isMobile ? 8 : 10),
             decoration: BoxDecoration(
               color: const Color(0xFF003060),
               borderRadius: BorderRadius.circular(8),
@@ -565,10 +602,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             child: Icon(
               icon,
               color: Colors.white,
-              size: 20,
+              size: isMobile ? 20 : 24,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: isMobile ? 12 : 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,14 +613,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 Text(
                   label,
                   style: GoogleFonts.poppins(
-                    fontSize: 11,
+                    fontSize: smallTextSize,
                     color: Colors.grey,
                   ),
                 ),
                 Text(
                   value,
                   style: GoogleFonts.poppins(
-                    fontSize: 13,
+                    fontSize: bodyTextSize,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF003060),
                   ),
@@ -599,22 +636,26 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Widget _buildPenaltyItem(String label, String amount) {
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
+    final bodyTextSize = size.width < 360 ? 13.0 : (isMobile ? 14.0 : (size.width < 900 ? 15.0 : 16.0));
+    
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: isMobile ? 12 : 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: bodyTextSize,
               color: Colors.grey[700],
             ),
           ),
           Text(
             amount,
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: bodyTextSize,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF003060),
             ),
@@ -639,6 +680,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
   Widget _buildDefaultBookCover() {
+    final size = MediaQuery.of(context).size;
+    final isMobile = size.width < 600;
+    final isSmallMobile = size.width < 360;
+    
+    final iconSize = isSmallMobile ? 35.0 : (isMobile ? 40.0 : 50.0);
+    final titleSize = isSmallMobile ? 20.0 : (isMobile ? 24.0 : 28.0);
+    final authorLabelSize = isSmallMobile ? 9.0 : (isMobile ? 10.0 : 11.0);
+    final authorSize = isSmallMobile ? 8.0 : (isMobile ? 9.0 : 10.0);
+    
     return Stack(
       children: [
         Container(
@@ -658,21 +708,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(isMobile ? 20 : 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.location_on,
                 color: Colors.yellow[700],
-                size: 40,
+                size: iconSize,
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: isMobile ? 20 : 24),
               Text(
                 widget.book['title'] ?? 'READINGS IN\nPHILIPPINE\nHISTORY',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
-                  fontSize: 24,
+                  fontSize: titleSize,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                   shadows: [
@@ -686,7 +736,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isMobile ? 12 : 14),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(8),
@@ -697,7 +747,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     Text(
                       'Author/s:',
                       style: GoogleFonts.poppins(
-                        fontSize: 10,
+                        fontSize: authorLabelSize,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF003060),
                       ),
@@ -705,7 +755,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     Text(
                       widget.book['author'] ?? 'Unknown',
                       style: GoogleFonts.poppins(
-                        fontSize: 9,
+                        fontSize: authorSize,
                         color: const Color(0xFF003060),
                       ),
                     ),

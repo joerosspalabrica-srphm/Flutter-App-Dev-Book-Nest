@@ -111,30 +111,47 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get screen size and define responsive breakpoints
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
             // Header
-            _buildHeader(),
+            _buildHeader(isSmallMobile, isMobile, isTablet),
             
             // Chat Messages
             Expanded(
-              child: _buildMessageList(),
+              child: _buildMessageList(isSmallMobile, isMobile, isTablet),
             ),
             
             // Input Field
-            _buildInputField(),
+            _buildInputField(isSmallMobile, isMobile, isTablet),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isSmallMobile, bool isMobile, bool isTablet) {
+    final horizontalPadding = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final verticalPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final backIconSize = isSmallMobile ? 22.0 : (isMobile ? 23.0 : 24.0);
+    final avatarRadius = isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0);
+    final avatarIconSize = isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0);
+    final nameFontSize = isSmallMobile ? 16.0 : (isMobile ? 17.0 : (isTablet ? 18.0 : 20.0));
+    final spacing = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final moreIconSize = isSmallMobile ? 22.0 : (isMobile ? 23.0 : 24.0);
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -148,44 +165,45 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF003060)),
+            icon: Icon(Icons.arrow_back, color: Color(0xFF003060), size: backIconSize),
             onPressed: () {
               Navigator.pop(context);
             },
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: spacing),
           CircleAvatar(
-            radius: 20,
+            radius: avatarRadius,
             backgroundColor: Colors.blue.shade700,
             child: widget.isSystemChat
                 ? ClipOval(
                     child: Image.asset(
                       'assets/logo.png',
                       fit: BoxFit.cover,
-                      width: 40,
-                      height: 40,
+                      width: avatarRadius * 2,
+                      height: avatarRadius * 2,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.settings, color: Colors.white, size: 20);
+                        return Icon(Icons.settings, color: Colors.white, size: avatarIconSize);
                       },
                     ),
                   )
-                : const Icon(Icons.person, color: Colors.white, size: 20),
+                : Icon(Icons.person, color: Colors.white, size: avatarIconSize),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: spacing),
           Expanded(
             child: Text(
               widget.chatName,
               style: GoogleFonts.poppins(
-                fontSize: 18,
+                fontSize: nameFontSize,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF003060),
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF003060)),
+            icon: Icon(Icons.more_vert, color: Color(0xFF003060), size: moreIconSize),
             onPressed: () {},
           ),
         ],
@@ -193,20 +211,32 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildMessageList() {
+  Widget _buildMessageList(bool isSmallMobile, bool isMobile, bool isTablet) {
+    final horizontalPadding = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final verticalPadding = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
-        return _buildMessageBubble(_messages[index]);
+        return _buildMessageBubble(_messages[index], isSmallMobile, isMobile);
       },
     );
   }
 
-  Widget _buildMessageBubble(Message message) {
+  Widget _buildMessageBubble(Message message, bool isSmallMobile, bool isMobile) {
+    final bubbleSpacing = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final avatarRadius = isSmallMobile ? 14.0 : (isMobile ? 15.0 : 16.0);
+    final avatarIconSize = isSmallMobile ? 14.0 : (isMobile ? 15.0 : 16.0);
+    final avatarSpacing = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    final bubblePaddingH = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final bubblePaddingV = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final bubbleRadius = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final textFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 15.0);
+    
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: bubbleSpacing),
       child: Row(
         mainAxisAlignment:
             message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -214,36 +244,36 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           if (!message.isUser) ...[
             CircleAvatar(
-              radius: 16,
+              radius: avatarRadius,
               backgroundColor: Colors.blue.shade700,
               child: widget.isSystemChat
                   ? ClipOval(
                       child: Image.asset(
                         'assets/logo.png',
                         fit: BoxFit.cover,
-                        width: 32,
-                        height: 32,
+                        width: avatarRadius * 2,
+                        height: avatarRadius * 2,
                         errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.settings, color: Colors.white, size: 16);
+                          return Icon(Icons.settings, color: Colors.white, size: avatarIconSize);
                         },
                       ),
                     )
-                  : const Icon(Icons.person, color: Colors.white, size: 16),
+                  : Icon(Icons.person, color: Colors.white, size: avatarIconSize),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: avatarSpacing),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: bubblePaddingH, vertical: bubblePaddingV),
               decoration: BoxDecoration(
                 color: message.isUser
                     ? const Color(0xFF003060)
                     : const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(message.isUser ? 20 : 4),
-                  bottomRight: Radius.circular(message.isUser ? 4 : 20),
+                  topLeft: Radius.circular(bubbleRadius),
+                  topRight: Radius.circular(bubbleRadius),
+                  bottomLeft: Radius.circular(message.isUser ? bubbleRadius : 4),
+                  bottomRight: Radius.circular(message.isUser ? 4 : bubbleRadius),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -256,7 +286,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Text(
                 message.text,
                 style: GoogleFonts.poppins(
-                  fontSize: 15,
+                  fontSize: textFontSize,
                   color: message.isUser ? Colors.white : Colors.black87,
                   height: 1.4,
                 ),
@@ -264,11 +294,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           if (message.isUser) ...[
-            const SizedBox(width: 8),
+            SizedBox(width: avatarSpacing),
             CircleAvatar(
-              radius: 16,
+              radius: avatarRadius,
               backgroundColor: const Color(0xFFD67730),
-              child: const Icon(Icons.person, color: Colors.white, size: 16),
+              child: Icon(Icons.person, color: Colors.white, size: avatarIconSize),
             ),
           ],
         ],
@@ -276,9 +306,19 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildInputField() {
+  Widget _buildInputField(bool isSmallMobile, bool isMobile, bool isTablet) {
+    final horizontalPadding = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final verticalPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final inputRadius = isSmallMobile ? 22.0 : (isMobile ? 23.0 : 25.0);
+    final inputFontSize = isSmallMobile ? 13.0 : (isMobile ? 14.0 : 15.0);
+    final inputPaddingH = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final inputPaddingV = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final buttonSpacing = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final buttonPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final sendIconSize = isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0);
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -295,7 +335,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(inputRadius),
                 border: Border.all(color: Colors.grey.shade300),
               ),
               child: TextField(
@@ -304,23 +344,23 @@ class _ChatScreenState extends State<ChatScreen> {
                   hintText: 'Type a message',
                   hintStyle: GoogleFonts.poppins(
                     color: Colors.grey,
-                    fontSize: 15,
+                    fontSize: inputFontSize,
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: inputPaddingH,
+                    vertical: inputPaddingV,
                   ),
                 ),
                 onSubmitted: (_) => _sendMessage(),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: buttonSpacing),
           GestureDetector(
             onTap: _sendMessage,
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(buttonPadding),
               decoration: BoxDecoration(
                 color: const Color(0xFFD67730),
                 shape: BoxShape.circle,
@@ -332,10 +372,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.send,
                 color: Colors.white,
-                size: 20,
+                size: sendIconSize,
               ),
             ),
           ),

@@ -382,24 +382,36 @@ class _BookPostingFormState extends State<BookPostingForm> {
     final currentStepData = _steps[_currentStep];
     final fields = currentStepData['fields'] as List<FormFieldConfig>;
 
+    // Get screen size and define responsive breakpoints
+    final size = MediaQuery.of(context).size;
+    final width = size.width;
+    
+    final isSmallMobile = width < 360;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width < 900;
+    
+    // Responsive sizing variables
+    final horizontalPadding = isSmallMobile ? 16.0 : (isMobile ? 18.0 : (isTablet ? 24.0 : 32.0));
+    final spacing = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 24.0 : 28.0));
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(isSmallMobile, isMobile, isTablet, horizontalPadding),
             Expanded(
               child: Form(
                 key: _formKey,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(horizontalPadding),
                   child: Column(
                     children: [
-                      _buildFormCard(currentStepData, fields),
-                      const SizedBox(height: 24),
-                      _buildStepIndicators(),
-                      const SizedBox(height: 24),
-                      _buildActionButton(),
+                      _buildFormCard(currentStepData, fields, isSmallMobile, isMobile, isTablet),
+                      SizedBox(height: spacing),
+                      _buildStepIndicators(isSmallMobile, isMobile),
+                      SizedBox(height: spacing),
+                      _buildActionButton(isSmallMobile, isMobile, isTablet),
                     ],
                   ),
                 ),
@@ -411,9 +423,14 @@ class _BookPostingFormState extends State<BookPostingForm> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isSmallMobile, bool isMobile, bool isTablet, double horizontalPadding) {
+    final titleFontSize = isSmallMobile ? 16.0 : (isMobile ? 17.0 : (isTablet ? 18.0 : 20.0));
+    final iconSize = isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0);
+    final iconPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    final verticalPadding = isSmallMobile ? 14.0 : (isMobile ? 15.0 : 16.0);
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
       decoration: const BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -430,25 +447,28 @@ class _BookPostingFormState extends State<BookPostingForm> {
             onTap: _previousStep,
             borderRadius: BorderRadius.circular(50),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(iconPadding),
               decoration: BoxDecoration(
                 color: const Color(0xFF003060),
                 borderRadius: BorderRadius.circular(50),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back,
                 color: Colors.white,
-                size: 20,
+                size: iconSize,
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Text(
-            'Add a Book for Posting',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF003060),
+          SizedBox(width: isMobile ? 12 : 16),
+          Expanded(
+            child: Text(
+              'Add a Book for Posting',
+              style: GoogleFonts.poppins(
+                fontSize: titleFontSize,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF003060),
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -456,9 +476,15 @@ class _BookPostingFormState extends State<BookPostingForm> {
     );
   }
 
-  Widget _buildFormCard(Map<String, dynamic> stepData, List<FormFieldConfig> fields) {
+  Widget _buildFormCard(Map<String, dynamic> stepData, List<FormFieldConfig> fields, bool isSmallMobile, bool isMobile, bool isTablet) {
+    final cardPadding = isSmallMobile ? 16.0 : (isMobile ? 20.0 : (isTablet ? 24.0 : 28.0));
+    final titleFontSize = isSmallMobile ? 14.0 : (isMobile ? 15.0 : (isTablet ? 16.0 : 18.0));
+    final subtitleFontSize = isSmallMobile ? 12.0 : (isMobile ? 12.5 : 13.0);
+    final spacing = isSmallMobile ? 16.0 : (isMobile ? 18.0 : (isTablet ? 20.0 : 24.0));
+    final fieldSpacing = isSmallMobile ? 16.0 : (isMobile ? 18.0 : 20.0);
+    
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(cardPadding),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -477,32 +503,32 @@ class _BookPostingFormState extends State<BookPostingForm> {
             Text(
               stepData['title'],
               style: GoogleFonts.poppins(
-                fontSize: 16,
+                fontSize: titleFontSize,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF003060),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: spacing * 0.33),
             Text(
               stepData['subtitle'],
               style: GoogleFonts.poppins(
-                fontSize: 13,
+                fontSize: subtitleFontSize,
                 color: const Color(0xFF6B7280),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: spacing),
           ],
           // Image Upload Section (only on first step)
           if (_currentStep == 0) ...[
-            _buildImageUploadSection(),
-            const SizedBox(height: 20),
+            _buildImageUploadSection(isSmallMobile, isMobile, isTablet),
+            SizedBox(height: fieldSpacing),
           ],
           ...List.generate(
             fields.length,
             (index) => Column(
               children: [
-                _buildDynamicTextField(fields[index]),
-                if (index < fields.length - 1) const SizedBox(height: 20),
+                _buildDynamicTextField(fields[index], isSmallMobile, isMobile),
+                if (index < fields.length - 1) SizedBox(height: fieldSpacing),
               ],
             ),
           ),
@@ -511,7 +537,12 @@ class _BookPostingFormState extends State<BookPostingForm> {
     );
   }
 
-  Widget _buildDynamicTextField(FormFieldConfig config) {
+  Widget _buildDynamicTextField(FormFieldConfig config, bool isSmallMobile, bool isMobile) {
+    final labelFontSize = isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0);
+    final hintFontSize = isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0);
+    final iconSize = isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0);
+    final labelSpacing = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -520,7 +551,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
             Text(
               config.label,
               style: GoogleFonts.poppins(
-                fontSize: 14,
+                fontSize: labelFontSize,
                 fontWeight: FontWeight.w500,
                 color: const Color(0xFF374151),
               ),
@@ -529,23 +560,23 @@ class _BookPostingFormState extends State<BookPostingForm> {
               Text(
                 ' *',
                 style: GoogleFonts.poppins(
-                  fontSize: 14,
+                  fontSize: labelFontSize,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFFEF4444),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: labelSpacing),
         if (config.isDropdown && config.dropdownOptions != null)
           DropdownButtonFormField<String>(
             value: _formData[config.key],
             decoration: InputDecoration(
-              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
+              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: iconSize),
               hintText: 'Select ${config.label}',
               hintStyle: GoogleFonts.poppins(
                 color: const Color(0xFFD1D5DB),
-                fontSize: 14,
+                fontSize: hintFontSize,
               ),
             ),
             items: config.dropdownOptions!.map((String value) {
@@ -553,7 +584,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
                 value: value,
                 child: Text(
                   value,
-                  style: GoogleFonts.poppins(fontSize: 14),
+                  style: GoogleFonts.poppins(fontSize: hintFontSize),
                 ),
               );
             }).toList(),
@@ -579,12 +610,12 @@ class _BookPostingFormState extends State<BookPostingForm> {
             readOnly: true,
             keyboardType: config.keyboardType,
             decoration: InputDecoration(
-              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
-              suffixIcon: const Icon(Icons.calendar_today, color: Color(0xFF6B7280), size: 18),
+              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: iconSize),
+              suffixIcon: Icon(Icons.calendar_today, color: Color(0xFF6B7280), size: iconSize - 2),
               hintText: 'mm/dd/yyyy',
               hintStyle: GoogleFonts.poppins(
                 color: const Color(0xFFD1D5DB),
-                fontSize: 14,
+                fontSize: hintFontSize,
               ),
             ),
             onTap: () => _selectDate(context, config.key),
@@ -602,12 +633,12 @@ class _BookPostingFormState extends State<BookPostingForm> {
             maxLines: config.maxLines,
             keyboardType: config.keyboardType,
             decoration: InputDecoration(
-              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: 20),
+              prefixIcon: Icon(config.icon, color: const Color(0xFF6B7280), size: iconSize),
               prefixText: config.prefix,
               hintText: 'Enter ${config.label}',
               hintStyle: GoogleFonts.poppins(
                 color: const Color(0xFFD1D5DB),
-                fontSize: 14,
+                fontSize: hintFontSize,
               ),
             ),
             validator: config.validator ??
@@ -622,23 +653,32 @@ class _BookPostingFormState extends State<BookPostingForm> {
     );
   }
 
-  Widget _buildImageUploadSection() {
+  Widget _buildImageUploadSection(bool isSmallMobile, bool isMobile, bool isTablet) {
+    final labelFontSize = isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0);
+    final imageHeight = isSmallMobile ? 160.0 : (isMobile ? 180.0 : (isTablet ? 200.0 : 220.0));
+    final iconPadding = isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0);
+    final iconSize = isSmallMobile ? 40.0 : (isMobile ? 44.0 : 48.0);
+    final primaryTextSize = isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0);
+    final secondaryTextSize = isSmallMobile ? 11.0 : (isMobile ? 11.5 : 12.0);
+    final buttonIconSize = isSmallMobile ? 16.0 : (isMobile ? 17.0 : 18.0);
+    final buttonTextSize = isSmallMobile ? 11.0 : (isMobile ? 11.5 : 12.0);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Book Cover Image',
           style: GoogleFonts.poppins(
-            fontSize: 14,
+            fontSize: labelFontSize,
             fontWeight: FontWeight.w500,
             color: const Color(0xFF374151),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: isMobile ? 6 : 8),
         GestureDetector(
           onTap: _pickImage,
           child: Container(
-            height: 200,
+            height: imageHeight,
             width: double.infinity,
             decoration: BoxDecoration(
               color: const Color(0xFFF9FAFB),
@@ -661,31 +701,31 @@ class _BookPostingFormState extends State<BookPostingForm> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(iconPadding),
                         decoration: BoxDecoration(
                           color: const Color(0xFF003060).withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.add_photo_alternate_rounded,
-                          size: 48,
+                          size: iconSize,
                           color: Color(0xFF003060),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: isMobile ? 8 : 12),
                       Text(
                         'Tap to upload book cover',
                         style: GoogleFonts.poppins(
-                          fontSize: 14,
+                          fontSize: primaryTextSize,
                           color: const Color(0xFF6B7280),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         'JPG, PNG (Max 5MB)',
                         style: GoogleFonts.poppins(
-                          fontSize: 12,
+                          fontSize: secondaryTextSize,
                           color: const Color(0xFF9CA3AF),
                         ),
                       ),
@@ -694,7 +734,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           ),
         ),
         if (_bookImage != null) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: isMobile ? 6 : 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -705,10 +745,10 @@ class _BookPostingFormState extends State<BookPostingForm> {
                     _bookImageBase64 = null;
                   });
                 },
-                icon: const Icon(Icons.delete_outline, size: 18),
+                icon: Icon(Icons.delete_outline, size: buttonIconSize),
                 label: Text(
                   'Remove Image',
-                  style: GoogleFonts.poppins(fontSize: 12),
+                  style: GoogleFonts.poppins(fontSize: buttonTextSize),
                 ),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.red,
@@ -803,7 +843,10 @@ class _BookPostingFormState extends State<BookPostingForm> {
     }
   }
 
-  Widget _buildStepIndicators() {
+  Widget _buildStepIndicators(bool isSmallMobile, bool isMobile) {
+    final lineWidth = isSmallMobile ? 30.0 : (isMobile ? 35.0 : 40.0);
+    final lineMargin = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
@@ -813,9 +856,9 @@ class _BookPostingFormState extends State<BookPostingForm> {
             // Connector line
             final lineIndex = index ~/ 2;
             return Container(
-              width: 40,
+              width: lineWidth,
               height: 2,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
+              margin: EdgeInsets.symmetric(horizontal: lineMargin),
               color: _currentStep > lineIndex
                   ? const Color(0xFF003060)
                   : const Color(0xFFE5E7EB),
@@ -826,6 +869,8 @@ class _BookPostingFormState extends State<BookPostingForm> {
             return _buildStepIndicator(
               stepIndex,
               _steps[stepIndex]['title'],
+              isSmallMobile,
+              isMobile,
             );
           }
         },
@@ -833,14 +878,20 @@ class _BookPostingFormState extends State<BookPostingForm> {
     );
   }
 
-  Widget _buildStepIndicator(int step, String label) {
+  Widget _buildStepIndicator(int step, String label, bool isSmallMobile, bool isMobile) {
     final isActive = _currentStep >= step;
+    final circleSize = isSmallMobile ? 36.0 : (isMobile ? 38.0 : 40.0);
+    final iconSize = isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0);
+    final numberFontSize = isSmallMobile ? 14.0 : (isMobile ? 15.0 : 16.0);
+    final labelFontSize = isSmallMobile ? 11.0 : (isMobile ? 11.5 : 12.0);
+    final labelSpacing = isSmallMobile ? 6.0 : (isMobile ? 7.0 : 8.0);
+    
     return Column(
       children: [
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          width: 40,
-          height: 40,
+          width: circleSize,
+          height: circleSize,
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFF003060) : Colors.white,
             border: Border.all(
@@ -851,22 +902,22 @@ class _BookPostingFormState extends State<BookPostingForm> {
           ),
           child: Center(
             child: isActive && step < _currentStep
-                ? const Icon(Icons.check, color: Colors.white, size: 20)
+                ? Icon(Icons.check, color: Colors.white, size: iconSize)
                 : Text(
                     '${step + 1}',
                     style: GoogleFonts.poppins(
                       color: isActive ? Colors.white : const Color(0xFF9CA3AF),
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: numberFontSize,
                     ),
                   ),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: labelSpacing),
         Text(
           label,
           style: GoogleFonts.poppins(
-            fontSize: 12,
+            fontSize: labelFontSize,
             color: isActive ? const Color(0xFF003060) : const Color(0xFF9CA3AF),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
@@ -875,10 +926,14 @@ class _BookPostingFormState extends State<BookPostingForm> {
     );
   }
 
-  Widget _buildActionButton() {
+  Widget _buildActionButton(bool isSmallMobile, bool isMobile, bool isTablet) {
+    final buttonHeight = isSmallMobile ? 48.0 : (isMobile ? 50.0 : (isTablet ? 52.0 : 54.0));
+    final buttonFontSize = isSmallMobile ? 14.0 : (isMobile ? 15.0 : (isTablet ? 16.0 : 17.0));
+    final buttonRadius = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    
     return SizedBox(
       width: double.infinity,
-      height: 54,
+      height: buttonHeight,
       child: ElevatedButton(
         onPressed: _nextStep,
         style: ElevatedButton.styleFrom(
@@ -886,13 +941,13 @@ class _BookPostingFormState extends State<BookPostingForm> {
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(buttonRadius),
           ),
         ),
         child: Text(
           _currentStep == _steps.length - 1 ? 'Submit' : 'Next',
           style: GoogleFonts.poppins(
-            fontSize: 16,
+            fontSize: buttonFontSize,
             fontWeight: FontWeight.w600,
           ),
         ),
