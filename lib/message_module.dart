@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -62,11 +65,80 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Message> _messages = [];
   late DatabaseReference _messagesRef;
   late DatabaseReference _chatRef;
+  String _otherUserName = '';
+  File? _otherUserAvatar;
+  bool _isLoadingProfile = true;
   
   @override
   void initState() {
     super.initState();
     _initializeChat();
+    if (widget.otherUserId != null && !widget.isSystemChat) {
+      _loadOtherUserProfile();
+    } else {
+      _otherUserName = widget.chatName;
+      _isLoadingProfile = false;
+    }
+  }
+  
+  Future<void> _loadOtherUserProfile() async {
+    try {
+      print('DEBUG: Loading other user profile. otherUserId: ${widget.otherUserId}, chatName: ${widget.chatName}');
+      
+      if (widget.otherUserId == null) {
+        print('DEBUG: otherUserId is null, using chatName: ${widget.chatName}');
+        setState(() {
+          _otherUserName = widget.chatName;
+          _isLoadingProfile = false;
+        });
+        return;
+      }
+
+      print('DEBUG: Fetching user data from Firebase for userId: ${widget.otherUserId}');
+      // Fetch user's current name from Firebase
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/${widget.otherUserId}')
+          .once();
+      
+      print('DEBUG: User snapshot exists: ${userSnapshot.snapshot.exists}');
+      if (userSnapshot.snapshot.value != null) {
+        final userData = userSnapshot.snapshot.value as Map<dynamic, dynamic>;
+        _otherUserName = userData['username'] ?? widget.chatName;
+        print('DEBUG: Found username in Firebase: $_otherUserName');
+      } else {
+        _otherUserName = widget.chatName;
+        print('DEBUG: No user data found, using chatName: $_otherUserName');
+      }
+
+      // Load user's avatar from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final avatarBase64 = prefs.getString('avatar_base64_${widget.otherUserId}');
+      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+        try {
+          final bytes = base64Decode(avatarBase64);
+          final tempDir = Directory.systemTemp;
+          final file = File('${tempDir.path}/chat_avatar_${widget.otherUserId}.png');
+          await file.writeAsBytes(bytes);
+          _otherUserAvatar = file;
+        } catch (e) {
+          print('Error loading chat user avatar: $e');
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoadingProfile = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading other user profile: $e');
+      if (mounted) {
+        setState(() {
+          _otherUserName = widget.chatName;
+          _isLoadingProfile = false;
+        });
+      }
+    }
   }
   
   void _initializeChat() {
@@ -250,34 +322,55 @@ class _ChatScreenState extends State<ChatScreen> {
             constraints: const BoxConstraints(),
           ),
           SizedBox(width: spacing),
-          CircleAvatar(
-            radius: avatarRadius,
-            backgroundColor: Colors.blue.shade700,
-            child: widget.isSystemChat
-                ? ClipOval(
-                    child: Image.asset(
-                      'assets/logo.png',
-                      fit: BoxFit.cover,
-                      width: avatarRadius * 2,
-                      height: avatarRadius * 2,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(Icons.settings, color: Colors.white, size: avatarIconSize);
-                      },
-                    ),
-                  )
-                : Icon(Icons.person, color: Colors.white, size: avatarIconSize),
-          ),
+          _isLoadingProfile && !widget.isSystemChat
+              ? CircleAvatar(
+                  radius: avatarRadius,
+                  backgroundColor: Colors.blue.shade700,
+                  child: const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : CircleAvatar(
+                  radius: avatarRadius,
+                  backgroundColor: Colors.blue.shade700,
+                  backgroundImage: _otherUserAvatar != null ? FileImage(_otherUserAvatar!) : null,
+                  child: widget.isSystemChat
+                      ? ClipOval(
+                          child: Image.asset(
+                            'assets/logo.png',
+                            fit: BoxFit.cover,
+                            width: avatarRadius * 2,
+                            height: avatarRadius * 2,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(Icons.settings, color: Colors.white, size: avatarIconSize);
+                            },
+                          ),
+                        )
+                      : (_otherUserAvatar == null
+                          ? Icon(Icons.person, color: Colors.white, size: avatarIconSize)
+                          : null),
+                ),
           SizedBox(width: spacing),
           Expanded(
-            child: Text(
-              widget.chatName,
-              style: GoogleFonts.poppins(
-                fontSize: nameFontSize,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF003060),
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: _isLoadingProfile && !widget.isSystemChat
+                ? Container(
+                    height: 20,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  )
+                : Text(
+                    _otherUserName.isNotEmpty ? _otherUserName : widget.chatName,
+                    style: GoogleFonts.poppins(
+                      fontSize: nameFontSize,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF003060),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
           ),
           IconButton(
             icon: Icon(Icons.more_vert, color: Color(0xFF003060), size: moreIconSize),

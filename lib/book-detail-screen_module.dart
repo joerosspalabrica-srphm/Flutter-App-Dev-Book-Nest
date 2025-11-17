@@ -682,26 +682,89 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                             
                             // Create or get chat ID
                             final chatId = _generateChatId(currentUser.uid, ownerUid);
+                            print('DEBUG: Creating/updating chat. chatId: $chatId, currentUserId: ${currentUser.uid}, ownerId: $ownerUid');
                             
-                            // Get owner's name - try multiple possible field names
-                            String ownerName = widget.book['ownerName'] ?? widget.book['username'] ?? widget.book['name'] ?? 'Book Owner';
+                            // Fetch current user's name from Firebase
+                            String currentUserName = 'User';
+                            try {
+                              final currentUserSnapshot = await FirebaseDatabase.instance
+                                  .ref('users/${currentUser.uid}')
+                                  .once();
+                              
+                              print('DEBUG: Current user snapshot exists: ${currentUserSnapshot.snapshot.exists}');
+                              if (currentUserSnapshot.snapshot.value != null) {
+                                final currentUserData = currentUserSnapshot.snapshot.value as Map<dynamic, dynamic>;
+                                currentUserName = currentUserData['username'] ?? currentUser.displayName ?? 'User';
+                                print('DEBUG: Current user name fetched: $currentUserName');
+                              } else {
+                                currentUserName = currentUser.displayName ?? 'User';
+                                print('DEBUG: No current user data, using displayName: $currentUserName');
+                              }
+                            } catch (e) {
+                              print('Error fetching current user name: $e');
+                              currentUserName = currentUser.displayName ?? 'User';
+                            }
+                            
+                            // Fetch owner's current name from Firebase
+                            String ownerName = 'Book Owner';
+                            try {
+                              final ownerSnapshot = await FirebaseDatabase.instance
+                                  .ref('users/$ownerUid')
+                                  .once();
+                              
+                              print('DEBUG: Owner snapshot exists: ${ownerSnapshot.snapshot.exists}');
+                              if (ownerSnapshot.snapshot.value != null) {
+                                final ownerData = ownerSnapshot.snapshot.value as Map<dynamic, dynamic>;
+                                ownerName = ownerData['username'] ?? _ownerName ?? 'Book Owner';
+                                print('DEBUG: Owner name fetched: $ownerName');
+                              } else {
+                                ownerName = _ownerName ?? widget.book['ownerName'] ?? 'Book Owner';
+                                print('DEBUG: No owner data, using fallback: $ownerName');
+                              }
+                            } catch (e) {
+                              print('Error fetching owner name: $e');
+                              ownerName = _ownerName ?? widget.book['ownerName'] ?? 'Book Owner';
+                            }
+                            
+                            print('DEBUG: Final names - Current: $currentUserName, Owner: $ownerName');
                             
                             // Create chat metadata in Firebase
                             final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
-                            await chatRef.set({
-                              'participants': {
-                                currentUser.uid: true,
-                                ownerUid: true,
-                              },
-                              'participantNames': {
-                                currentUser.uid: currentUser.displayName ?? 'User',
-                                ownerUid: ownerName,
-                              },
-                              'lastMessage': 'Chat about ${widget.book['title']}',
-                              'lastMessageTime': ServerValue.timestamp,
-                              'bookId': widget.bookId,
-                              'bookTitle': widget.book['title'],
-                            });
+                            
+                            // Check if chat already exists
+                            final existingChat = await chatRef.once();
+                            
+                            if (existingChat.snapshot.exists) {
+                              print('DEBUG: Updating existing chat with current names');
+                              // Update existing chat with current names
+                              await chatRef.update({
+                                'participantNames': {
+                                  currentUser.uid: currentUserName,
+                                  ownerUid: ownerName,
+                                },
+                                'lastMessage': 'Chat about ${widget.book['title']}',
+                                'lastMessageTime': ServerValue.timestamp,
+                              });
+                            } else {
+                              print('DEBUG: Creating new chat with current names');
+                              // Create new chat
+                              await chatRef.set({
+                                'participants': {
+                                  currentUser.uid: true,
+                                  ownerUid: true,
+                                },
+                                'participantNames': {
+                                  currentUser.uid: currentUserName,
+                                  ownerUid: ownerName,
+                                },
+                                'lastMessage': 'Chat about ${widget.book['title']}',
+                                'lastMessageTime': ServerValue.timestamp,
+                                'bookId': widget.bookId,
+                                'bookTitle': widget.book['title'],
+                              });
+                            }
+                            
+                            print('DEBUG: Navigating to ChatScreen with chatName: $ownerName, otherUserId: $ownerUid');
                             
                             // Navigate to chat screen
                             if (!context.mounted) return;

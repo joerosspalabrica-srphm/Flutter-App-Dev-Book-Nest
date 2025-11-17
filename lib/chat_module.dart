@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'message_module.dart' show ChatScreen;
 import 'homepage_module' show HomeScreen;
 import 'favorite_module.dart' show FavoritesScreen;
@@ -79,7 +82,7 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
     }
     
     // Load chats from Firebase
-    FirebaseDatabase.instance.ref('chats').onValue.listen((event) {
+    FirebaseDatabase.instance.ref('chats').onValue.listen((event) async {
       final data = event.snapshot.value;
       List<ChatItem> loadedChats = [
         ChatItem(
@@ -93,24 +96,56 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
       ];
       
       if (data != null && data is Map) {
-        data.forEach((chatId, chatData) {
+        final prefs = await SharedPreferences.getInstance();
+        
+        for (var entry in data.entries) {
+          final chatId = entry.key;
+          final chatData = entry.value;
+          
           if (chatData is Map && chatData['participants'] != null) {
             final participants = chatData['participants'] as Map;
             // Only show chats where current user is a participant
             if (participants[currentUser.uid] == true) {
-              // Get the other participant's name
+              // Get the other participant's ID and fetch their current profile
               String otherUserName = 'User';
               String? otherUserId;
-              final participantNames = chatData['participantNames'] as Map?;
+              File? otherUserAvatar;
               
               participants.forEach((uid, _) {
                 if (uid != currentUser.uid) {
                   otherUserId = uid;
-                  if (participantNames != null && participantNames[uid] != null) {
-                    otherUserName = participantNames[uid];
-                  }
                 }
               });
+              
+              // Fetch current username from Firebase
+              if (otherUserId != null) {
+                try {
+                  final userSnapshot = await FirebaseDatabase.instance
+                      .ref('users/$otherUserId')
+                      .once();
+                  
+                  if (userSnapshot.snapshot.value != null) {
+                    final userData = userSnapshot.snapshot.value as Map<dynamic, dynamic>;
+                    otherUserName = userData['username'] ?? 'User';
+                  }
+                  
+                  // Load avatar from SharedPreferences
+                  final avatarBase64 = prefs.getString('avatar_base64_$otherUserId');
+                  if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+                    try {
+                      final bytes = base64Decode(avatarBase64);
+                      final tempDir = Directory.systemTemp;
+                      final file = File('${tempDir.path}/chat_list_avatar_$otherUserId.png');
+                      await file.writeAsBytes(bytes);
+                      otherUserAvatar = file;
+                    } catch (e) {
+                      print('Error loading avatar for chat list: $e');
+                    }
+                  }
+                } catch (e) {
+                  print('Error fetching user profile: $e');
+                }
+              }
               
               // Check if current user has unread messages
               final readStatus = chatData['readBy'] as Map?;
@@ -125,10 +160,11 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                 isUnread: isUnread,
                 chatId: chatId,
                 otherUserId: otherUserId,
+                avatarFile: otherUserAvatar,
               ));
             }
           }
-        });
+        }
       }
       
       if (mounted) {
@@ -542,6 +578,7 @@ class ChatTile extends StatelessWidget {
                 CircleAvatar(
                   radius: avatarRadius,
                   backgroundColor: chat.avatarColor,
+                  backgroundImage: chat.avatarFile != null ? FileImage(chat.avatarFile!) : null,
                   child: chat.isSystemChat
                       ? ClipOval(
                           child: Image.asset(
@@ -561,14 +598,16 @@ class ChatTile extends StatelessWidget {
                             },
                           ),
                         )
-                      : Text(
-                          chat.initials,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: initialsFontSize,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      : (chat.avatarFile == null
+                          ? Text(
+                              chat.initials,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: initialsFontSize,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            )
+                          : null),
                 ),
                 SizedBox(width: avatarSpacing),
                 // Chat Details
@@ -644,6 +683,7 @@ class ChatItem {
   final bool isSystemChat;
   final String chatId;
   final String? otherUserId;
+  final File? avatarFile;
   bool isUnread;
 
   ChatItem({
@@ -653,6 +693,7 @@ class ChatItem {
     required this.initials,
     required this.chatId,
     this.otherUserId,
+    this.avatarFile,
     this.isSystemChat = false,
     this.isUnread = true,
   });
