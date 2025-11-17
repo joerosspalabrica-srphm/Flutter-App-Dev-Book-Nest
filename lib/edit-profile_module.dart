@@ -23,12 +23,6 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   
-  // Edit mode controls
-  bool _isEditingName = false;
-  bool _isEditingCurrentPassword = false;
-  bool _isEditingNewPassword = false;
-  bool _isEditingConfirmPassword = false;
-  
   // For reset functionality
   String _originalName = '';
   
@@ -133,11 +127,6 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
       currentPasswordController.text = '';
       passwordController.text = '';
       confirmPasswordController.text = '';
-      // Reset edit modes
-      _isEditingName = false;
-      _isEditingCurrentPassword = false;
-      _isEditingNewPassword = false;
-      _isEditingConfirmPassword = false;
     });
     _showSnackBar('Changes reset', isError: false);
   }
@@ -499,7 +488,6 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ),
                   TextField(
                     controller: usernameController,
-                    enabled: _isEditingName,
                     maxLength: _nameMaxLength,
                     decoration: InputDecoration(
                       hintText: 'Enter your name',
@@ -516,26 +504,19 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF003366)),
                       ),
-                      disabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                      ),
                       counterText: '', // Hide default counter
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isEditingName ? Icons.check : Icons.edit,
-                          color: _isEditingName ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                      suffixIcon: Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: Icon(
+                          Icons.edit,
+                          color: const Color(0xFFFF6B35),
                           size: iconSize,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _isEditingName = !_isEditingName;
-                          });
-                        },
                       ),
                     ),
                     style: GoogleFonts.poppins(
                       fontSize: hintFontSize,
-                      color: _isEditingName ? Colors.black : Colors.black54,
+                      color: Colors.black,
                     ),
                   ),
                   
@@ -552,7 +533,6 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ),
                   TextField(
                     controller: currentPasswordController,
-                    enabled: _isEditingCurrentPassword,
                     obscureText: _obscureCurrentPassword,
                     decoration: InputDecoration(
                       hintText: 'Enter current password',
@@ -569,45 +549,37 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF003366)),
                       ),
-                      disabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                      ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (_isEditingCurrentPassword)
-                            IconButton(
-                              icon: Icon(
-                                _obscureCurrentPassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.grey,
-                                size: iconSize,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscureCurrentPassword = !_obscureCurrentPassword;
-                                });
-                              },
-                            ),
                           IconButton(
                             icon: Icon(
-                              _isEditingCurrentPassword ? Icons.check : Icons.edit,
-                              color: _isEditingCurrentPassword ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                              _obscureCurrentPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.grey,
                               size: iconSize,
                             ),
                             onPressed: () {
                               setState(() {
-                                _isEditingCurrentPassword = !_isEditingCurrentPassword;
+                                _obscureCurrentPassword = !_obscureCurrentPassword;
                               });
                             },
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12.0),
+                            child: Icon(
+                              Icons.edit,
+                              color: const Color(0xFFFF6B35),
+                              size: iconSize,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     style: GoogleFonts.poppins(
                       fontSize: hintFontSize,
-                      color: _isEditingCurrentPassword ? Colors.black : Colors.black54,
+                      color: Colors.black,
                     ),
                   ),
                   
@@ -624,7 +596,6 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ),
                   TextField(
                     controller: passwordController,
-                    enabled: _isEditingNewPassword,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       hintText: 'Enter new password (optional)',
@@ -641,45 +612,37 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                       focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Color(0xFF003366)),
                       ),
-                      disabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                      ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (_isEditingNewPassword)
-                            IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.grey,
-                                size: iconSize,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
                           IconButton(
                             icon: Icon(
-                              _isEditingNewPassword ? Icons.check : Icons.edit,
-                              color: _isEditingNewPassword ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.grey,
                               size: iconSize,
                             ),
                             onPressed: () {
                               setState(() {
-                                _isEditingNewPassword = !_isEditingNewPassword;
+                                _obscurePassword = !_obscurePassword;
                               });
                             },
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12.0),
+                            child: Icon(
+                              Icons.edit,
+                              color: const Color(0xFFFF6B35),
+                              size: iconSize,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     style: GoogleFonts.poppins(
                       fontSize: hintFontSize,
-                      color: _isEditingNewPassword ? Colors.black : Colors.black54,
+                      color: Colors.black,
                     ),
                   ),
                   
@@ -697,14 +660,8 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ValueListenableBuilder(
                     valueListenable: confirmPasswordController,
                     builder: (context, value, child) {
-                      final confirmText = value.text;
-                      final newPasswordText = passwordController.text;
-                      final isEmpty = confirmText.isEmpty;
-                      final isMatching = confirmText == newPasswordText && confirmText.isNotEmpty;
-                      
                       return TextField(
                         controller: confirmPasswordController,
-                        enabled: _isEditingConfirmPassword,
                         obscureText: _obscureConfirmPassword,
                         decoration: InputDecoration(
                           hintText: 'Re-enter new password',
@@ -721,51 +678,37 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                           focusedBorder: const UnderlineInputBorder(
                             borderSide: BorderSide(color: Color(0xFF003366)),
                           ),
-                          disabledBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFFEEEEEE)),
-                          ),
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (_isEditingConfirmPassword)
-                                IconButton(
-                                  icon: Icon(
-                                    _obscureConfirmPassword
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
-                                    color: Colors.grey,
-                                    size: iconSize,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                                    });
-                                  },
-                                ),
-                              if (!isEmpty && _isEditingConfirmPassword)
-                                Icon(
-                                  isMatching ? Icons.check_circle : Icons.cancel,
-                                  color: isMatching ? const Color(0xFF4CAF50) : const Color(0xFFE53935),
-                                  size: iconSize,
-                                ),
                               IconButton(
                                 icon: Icon(
-                                  _isEditingConfirmPassword ? Icons.check : Icons.edit,
-                                  color: _isEditingConfirmPassword ? const Color(0xFF4CAF50) : const Color(0xFFFF6B35),
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                  color: Colors.grey,
                                   size: iconSize,
                                 ),
                                 onPressed: () {
                                   setState(() {
-                                    _isEditingConfirmPassword = !_isEditingConfirmPassword;
+                                    _obscureConfirmPassword = !_obscureConfirmPassword;
                                   });
                                 },
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(right: 12.0),
+                                child: Icon(
+                                  Icons.edit,
+                                  color: const Color(0xFFFF6B35),
+                                  size: iconSize,
+                                ),
                               ),
                             ],
                           ),
                         ),
                         style: GoogleFonts.poppins(
                           fontSize: hintFontSize,
-                          color: _isEditingConfirmPassword ? Colors.black : Colors.black54,
+                          color: Colors.black,
                         ),
                       );
                     },

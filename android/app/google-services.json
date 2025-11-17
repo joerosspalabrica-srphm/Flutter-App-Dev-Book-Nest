@@ -1,10 +1,30 @@
 {
   "project_info": {
     "project_number": "362801125853",
+    "firebase_url": "https://book-nest-1e814-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "book-nest-1e814",
     "storage_bucket": "book-nest-1e814.firebasestorage.app"
   },
   "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:362801125853:android:6b9a68dbf9ea0c6ec07e34",
+        "android_client_info": {
+          "package_name": "com.booknest.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo5YEaMn9axiXXlQ_HhNkspVeyvLvrk48"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
     {
       "client_info": {
         "mobilesdk_app_id": "1:362801125853:android:00712c3ff4a3f326c07e34",
