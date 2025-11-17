@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'message_module.dart' show ChatScreen;
 
 class BookDetailScreen extends StatefulWidget {
@@ -21,17 +23,75 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isFavorite = false;
+  String? _ownerName;
+  File? _ownerAvatar;
+  bool _isLoadingOwner = true;
 
   @override
   void initState() {
     super.initState();
     _checkIfFavorite();
+    _loadOwnerProfile();
   }
   
   // Generate a consistent chat ID for two users
   String _generateChatId(String userId1, String userId2) {
     final ids = [userId1, userId2]..sort();
     return '${ids[0]}_${ids[1]}';
+  }
+
+  Future<void> _loadOwnerProfile() async {
+    try {
+      final ownerId = widget.book['ownerId'];
+      if (ownerId == null || ownerId.toString().isEmpty) {
+        setState(() {
+          _ownerName = widget.book['ownerName'] ?? 'Unknown Owner';
+          _isLoadingOwner = false;
+        });
+        return;
+      }
+
+      // Fetch owner's current name from Firebase
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/$ownerId')
+          .once();
+      
+      if (userSnapshot.snapshot.value != null) {
+        final userData = userSnapshot.snapshot.value as Map<dynamic, dynamic>;
+        _ownerName = userData['username'] ?? widget.book['ownerName'] ?? 'Unknown Owner';
+      } else {
+        _ownerName = widget.book['ownerName'] ?? 'Unknown Owner';
+      }
+
+      // Load owner's avatar from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final avatarBase64 = prefs.getString('avatar_base64_$ownerId');
+      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+        try {
+          final bytes = base64Decode(avatarBase64);
+          final tempDir = Directory.systemTemp;
+          final file = File('${tempDir.path}/owner_avatar_$ownerId.png');
+          await file.writeAsBytes(bytes);
+          _ownerAvatar = file;
+        } catch (e) {
+          print('Error loading owner avatar: $e');
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoadingOwner = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading owner profile: $e');
+      if (mounted) {
+        setState(() {
+          _ownerName = widget.book['ownerName'] ?? 'Unknown Owner';
+          _isLoadingOwner = false;
+        });
+      }
+    }
   }
 
   Future<void> _checkIfFavorite() async {
@@ -493,31 +553,53 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   ),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: isMobile ? 28 : 32,
-                        backgroundColor: const Color(0xFF4A90E2),
-                        child: Text(
-                          (widget.book['ownerName'] ?? 'U')[0].toUpperCase(),
-                          style: GoogleFonts.poppins(
-                            fontSize: isMobile ? 24 : 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                      _isLoadingOwner
+                          ? CircleAvatar(
+                              radius: isMobile ? 28 : 32,
+                              backgroundColor: const Color(0xFF4A90E2),
+                              child: const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : CircleAvatar(
+                              radius: isMobile ? 28 : 32,
+                              backgroundColor: const Color(0xFF4A90E2),
+                              backgroundImage: _ownerAvatar != null ? FileImage(_ownerAvatar!) : null,
+                              child: _ownerAvatar == null
+                                  ? Text(
+                                      (_ownerName ?? 'U')[0].toUpperCase(),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: isMobile ? 24 : 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : null,
+                            ),
                       SizedBox(width: isMobile ? 16 : 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              widget.book['ownerName'] ?? 'Unknown Owner',
-                              style: GoogleFonts.poppins(
-                                fontSize: bodyTextSize + 2,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF003060),
-                              ),
-                            ),
+                            _isLoadingOwner
+                                ? Container(
+                                    height: 20,
+                                    width: 120,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  )
+                                : Text(
+                                    _ownerName ?? 'Unknown Owner',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: bodyTextSize + 2,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF003060),
+                                    ),
+                                  ),
+                            const SizedBox(height: 2),
                             Text(
                               'Owner',
                               style: GoogleFonts.poppins(
