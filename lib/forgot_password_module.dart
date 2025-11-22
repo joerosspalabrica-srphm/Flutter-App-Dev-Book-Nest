@@ -108,140 +108,224 @@ class ForgotPasswordModule {
               }
             }
 
-            return AlertDialog(
+            final contentPadding = isMobile ? 20.0 : 24.0;
+            
+            return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(dialogBorderRadius),
               ),
-              backgroundColor: Colors.white,
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.lock_reset,
-                    color: const Color(0xFF003366),
-                    size: titleFontSize,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Reset Password',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF003366),
-                        fontSize: titleFontSize,
-                      ),
+              backgroundColor: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(dialogBorderRadius),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Enter your WVSU email address and we\'ll send you a link to reset your password.',
-                    style: GoogleFonts.poppins(
-                      fontSize: contentFontSize,
-                      color: Colors.grey.shade700,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: emailController,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      labelText: 'WVSU Email Address',
-                      labelStyle: GoogleFonts.poppins(
-                        fontSize: labelFontSize,
-                        color: Colors.grey.shade600,
-                      ),
-                      hintText: 'example@wvsu.edu.ph',
-                      hintStyle: GoogleFonts.poppins(
-                        fontSize: contentFontSize,
-                        color: Colors.grey.shade400,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.email,
-                        color: const Color(0xFF003366),
-                        size: iconSize,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF003366),
-                          width: 2,
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with gradient background
+                    Container(
+                      padding: EdgeInsets.all(isMobile ? 20 : 24),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF003060), Color(0xFF004080)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(dialogBorderRadius),
+                          topRight: Radius.circular(dialogBorderRadius),
                         ),
                       ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.lock_reset,
+                              color: Colors.white,
+                              size: titleFontSize,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Reset Password',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: titleFontSize,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    style: GoogleFonts.poppins(fontSize: contentFontSize),
-                  ),
-                ],
+                    // Content
+                    Padding(
+                      padding: EdgeInsets.all(contentPadding),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Info box
+                          Container(
+                            padding: EdgeInsets.all(contentPadding * 0.75),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF003060).withOpacity(0.05),
+                              border: Border.all(
+                                color: const Color(0xFF003060).withOpacity(0.2),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: const Color(0xFF003060),
+                                  size: iconSize,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Enter your WVSU email address and we\'ll send you a link to reset your password.',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: contentFontSize,
+                                      color: const Color(0xFF003060),
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: contentPadding),
+                          // Email input
+                          TextFormField(
+                            controller: emailController,
+                            enabled: !isLoading,
+                            decoration: InputDecoration(
+                              labelText: 'WVSU Email Address',
+                              labelStyle: GoogleFonts.poppins(
+                                fontSize: labelFontSize,
+                                color: Colors.grey.shade600,
+                              ),
+                              hintText: 'example@wvsu.edu.ph',
+                              hintStyle: GoogleFonts.poppins(
+                                fontSize: contentFontSize,
+                                color: Colors.grey.shade400,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.email,
+                                color: const Color(0xFFFF6B35),
+                                size: iconSize,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFFF6B35),
+                                  width: 2,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            style: GoogleFonts.poppins(fontSize: contentFontSize),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Buttons
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(contentPadding, 0, contentPadding, contentPadding),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          OutlinedButton(
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    Navigator.of(dialogContext).pop();
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: buttonPaddingH,
+                                vertical: buttonPaddingV,
+                              ),
+                              side: BorderSide(
+                                color: isLoading ? Colors.grey.shade300 : const Color(0xFF003060),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(buttonBorderRadius),
+                              ),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: GoogleFonts.poppins(
+                                color: isLoading ? Colors.grey.shade400 : const Color(0xFF003060),
+                                fontSize: buttonFontSize,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: isLoading ? null : sendResetEmail,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFF6B35),
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: buttonPaddingH,
+                                vertical: buttonPaddingV,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(buttonBorderRadius),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: isLoading
+                                ? SizedBox(
+                                    width: iconSize,
+                                    height: iconSize,
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    'Send Link',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: buttonFontSize,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: isLoading
-                      ? null
-                      : () {
-                          Navigator.of(dialogContext).pop();
-                        },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: buttonPaddingH,
-                      vertical: buttonPaddingV,
-                    ),
-                  ),
-                  child: Text(
-                    'Cancel',
-                    style: GoogleFonts.poppins(
-                      color: isLoading ? Colors.grey.shade400 : Colors.grey.shade600,
-                      fontSize: buttonFontSize,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: isLoading ? null : sendResetEmail,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD67730),
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: buttonPaddingH,
-                      vertical: buttonPaddingV,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(buttonBorderRadius),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: isLoading
-                      ? SizedBox(
-                          width: iconSize,
-                          height: iconSize,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          'Send Reset Link',
-                          style: GoogleFonts.poppins(
-                            fontSize: buttonFontSize,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-              ],
             );
           },
         );
