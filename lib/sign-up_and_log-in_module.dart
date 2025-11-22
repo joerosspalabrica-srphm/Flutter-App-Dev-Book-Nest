@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'homepage_module' as homepage;
+import 'main_navigation.dart';
 import 'forgot_password_module.dart';
 
 void main() async {
@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const homepage.HomeScreen(),
+          builder: (context) => const MainNavigation(initialIndex: 0),
         ),
       );
     } on FirebaseAuthException catch (e) {
@@ -597,7 +597,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           await Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const homepage.HomeScreen(),
+              builder: (context) => const MainNavigation(initialIndex: 0),
             ),
           );
           print('DEBUG: Navigation completed successfully');
