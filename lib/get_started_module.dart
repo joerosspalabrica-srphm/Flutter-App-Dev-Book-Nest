@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 // Import the login / register module so we can navigate to the Register screen
 import 'sign-up_and_log-in_module.dart';
+import 'main_navigation.dart';
 
 // Helper function to create Poppins-style text
 TextStyle poppinsStyle({
@@ -33,8 +35,38 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         textTheme: GoogleFonts.poppinsTextTheme(),
       ),
-      home: const BookNestScreen(),
+      home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+// Authentication wrapper to check login status
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Show loading while checking auth state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        // If user is logged in, go to main navigation (home page)
+        if (snapshot.hasData && snapshot.data != null) {
+          return const MainNavigation(initialIndex: 0);
+        }
+        
+        // If not logged in, show get started screen
+        return const BookNestScreen();
+      },
     );
   }
 }
