@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -223,15 +224,33 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         return;
       }
       
-      // Read file bytes
+      // Upload to Firebase Storage
+      try {
+        print('DEBUG: Uploading avatar to Firebase Storage...');
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('avatars/${user.uid}.jpg');
+        
+        await storageRef.putFile(sourceFile);
+        final downloadUrl = await storageRef.getDownloadURL();
+        print('DEBUG: Avatar uploaded to Firebase Storage: $downloadUrl');
+        
+        // Save URL to Realtime Database
+        await FirebaseDatabase.instance
+            .ref('users/${user.uid}')
+            .update({'avatarUrl': downloadUrl});
+        print('DEBUG: Avatar URL saved to database');
+      } catch (uploadError) {
+        print('DEBUG: Error uploading to Firebase Storage: $uploadError');
+      }
+      
+      // Also save to SharedPreferences for offline access
       final bytes = await sourceFile.readAsBytes();
       print('DEBUG: Read ${bytes.length} bytes from source file');
       
-      // Convert bytes to base64
       final base64String = base64Encode(bytes);
       print('DEBUG: Converted to base64, length: ${base64String.length}');
       
-      // Save to SharedPreferences with user-specific key
       final prefs = await SharedPreferences.getInstance();
       final avatarKey = 'avatar_base64_${user.uid}';
       await prefs.setString(avatarKey, base64String);
@@ -253,6 +272,38 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
         return;
       }
       
+      // Try to load from Firebase Database first (URL)
+      try {
+        final snapshot = await FirebaseDatabase.instance
+            .ref('users/${user.uid}/avatarUrl')
+            .once();
+        
+        if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
+          final avatarUrl = snapshot.snapshot.value as String;
+          if (avatarUrl.isNotEmpty) {
+            print('DEBUG: Found avatar URL in database: $avatarUrl');
+            // Download from URL and create temporary file
+            final response = await FirebaseStorage.instance.refFromURL(avatarUrl).getData();
+            if (response != null) {
+              final tempDir = await Directory.systemTemp.createTemp('flutter_avatar');
+              final avatarFile = File('${tempDir.path}/avatar.png');
+              await avatarFile.writeAsBytes(response);
+              
+              if (mounted) {
+                setState(() {
+                  _avatarImage = avatarFile;
+                });
+                print('DEBUG: Loaded avatar from Firebase Storage');
+              }
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        print('DEBUG: Error loading from Firebase Storage: $e');
+      }
+      
+      // Fallback to local SharedPreferences (for backward compatibility)
       final prefs = await SharedPreferences.getInstance();
       final avatarKey = 'avatar_base64_${user.uid}';
       final base64String = prefs.getString(avatarKey);
@@ -260,11 +311,9 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       
       if (base64String != null && base64String.isNotEmpty) {
         try {
-          // Decode base64 to bytes
           final bytes = base64Decode(base64String);
           print('DEBUG: Decoded base64 to ${bytes.length} bytes');
           
-          // Create a temporary file from bytes
           final tempDir = await Directory.systemTemp.createTemp('flutter_avatar');
           final avatarFile = File('${tempDir.path}/avatar.png');
           await avatarFile.writeAsBytes(bytes);
@@ -273,13 +322,13 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             setState(() {
               _avatarImage = avatarFile;
             });
-            print('DEBUG: Loaded saved avatar from base64');
+            print('DEBUG: Loaded saved avatar from local storage');
           }
         } catch (decodeError) {
           print('DEBUG: Error decoding base64: $decodeError');
         }
       } else {
-        print('DEBUG: No saved avatar base64 found in preferences');
+        print('DEBUG: No saved avatar found');
       }
     } catch (e) {
       print('DEBUG: Error loading saved avatar: $e');

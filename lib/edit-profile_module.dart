@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -60,17 +61,47 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
         return;
       }
       
+      // Try to load from Firebase Database first (URL)
+      try {
+        final snapshot = await FirebaseDatabase.instance
+            .ref('users/${user.uid}/avatarUrl')
+            .once();
+        
+        if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
+          final avatarUrl = snapshot.snapshot.value as String;
+          if (avatarUrl.isNotEmpty) {
+            print('DEBUG: Found avatar URL in database: $avatarUrl');
+            // Download from URL and create temporary file
+            final response = await FirebaseStorage.instance.refFromURL(avatarUrl).getData();
+            if (response != null) {
+              final tempDir = await Directory.systemTemp.createTemp('flutter_avatar_edit');
+              final avatarFile = File('${tempDir.path}/avatar.png');
+              await avatarFile.writeAsBytes(response);
+              
+              if (mounted) {
+                setState(() {
+                  _avatarImage = avatarFile;
+                });
+                print('DEBUG: Loaded avatar from Firebase Storage in edit profile');
+              }
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        print('DEBUG: Error loading from Firebase Storage: $e');
+      }
+      
+      // Fallback to local SharedPreferences (for backward compatibility)
       final prefs = await SharedPreferences.getInstance();
       final avatarKey = 'avatar_base64_${user.uid}';
       final base64String = prefs.getString(avatarKey);
       
       if (base64String != null && base64String.isNotEmpty) {
         try {
-          // Decode base64 to bytes
           final bytes = base64Decode(base64String);
           print('DEBUG: Decoded base64 to ${bytes.length} bytes in edit profile');
           
-          // Create a temporary file from bytes
           final tempDir = await Directory.systemTemp.createTemp('flutter_avatar_edit');
           final avatarFile = File('${tempDir.path}/avatar.png');
           await avatarFile.writeAsBytes(bytes);
@@ -79,7 +110,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
             setState(() {
               _avatarImage = avatarFile;
             });
-            print('DEBUG: Loaded saved avatar from base64 in edit profile');
+            print('DEBUG: Loaded saved avatar from local storage in edit profile');
           }
         } catch (decodeError) {
           print('DEBUG: Error decoding base64 in edit profile: $decodeError');
@@ -197,13 +228,44 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
       // Update display name
       await user.updateDisplayName(usernameController.text.trim());
 
+      // Upload avatar to Firebase Storage if there's a new image
+      String? avatarUrl;
+      if (_avatarImage != null) {
+        try {
+          print('DEBUG: Uploading avatar to Firebase Storage...');
+          final storageRef = FirebaseStorage.instance
+              .ref()
+              .child('avatars/${user.uid}.jpg');
+          
+          await storageRef.putFile(_avatarImage!);
+          avatarUrl = await storageRef.getDownloadURL();
+          print('DEBUG: Avatar uploaded successfully: $avatarUrl');
+          
+          // Also save to SharedPreferences for offline access
+          final bytes = await _avatarImage!.readAsBytes();
+          final base64String = base64Encode(bytes);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('avatar_base64_${user.uid}', base64String);
+          print('DEBUG: Avatar also saved to local storage');
+        } catch (uploadError) {
+          print('DEBUG: Error uploading avatar: $uploadError');
+          // Continue without failing the entire update
+        }
+      }
+
       // Update Realtime Database
-      await FirebaseDatabase.instance
-          .ref('users/${user.uid}')
-          .update({
+      final updates = {
         'username': usernameController.text.trim(),
         'name': usernameController.text.trim(),
-      });
+      };
+      
+      if (avatarUrl != null) {
+        updates['avatarUrl'] = avatarUrl;
+      }
+      
+      await FirebaseDatabase.instance
+          .ref('users/${user.uid}')
+          .update(updates);
 
       // Update password if provided
       if (passwordController.text.isNotEmpty) {
