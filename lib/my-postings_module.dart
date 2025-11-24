@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
-import 'profile_module.dart' show ProfileScreen;
 import 'book-detail-screen_module.dart' show BookDetailScreen;
 
 void main() {
@@ -36,6 +35,7 @@ class PostingsScreen extends StatefulWidget {
 
 class _PostingsScreenState extends State<PostingsScreen> {
   String selectedCategory = 'All';
+  int _selectedTabIndex = 0; // 0 for My Books, 1 for Requests
   
   final List<String> categories = [
     'All',
@@ -46,12 +46,14 @@ class _PostingsScreenState extends State<PostingsScreen> {
   ];
 
   List<Map<String, dynamic>> _myBooks = [];
+  List<Map<String, dynamic>> _borrowRequests = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadMyPostings();
+    _loadBorrowRequests();
   }
 
   Future<void> _loadMyPostings() async {
@@ -114,6 +116,88 @@ class _PostingsScreenState extends State<PostingsScreen> {
     }
   }
 
+  Future<void> _loadBorrowRequests() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Load all borrow requests where user is the owner
+      final snapshot = await FirebaseDatabase.instance
+          .ref('borrows')
+          .orderByChild('ownerId')
+          .equalTo(user.uid)
+          .once();
+
+      if (snapshot.snapshot.exists) {
+        final data = snapshot.snapshot.value as Map?;
+        if (data != null) {
+          final List<Map<String, dynamic>> loadedRequests = [];
+          
+          data.forEach((key, value) {
+            if (value is Map) {
+              final requestData = Map<String, dynamic>.from(value);
+              requestData['id'] = key; // Store the request ID
+              loadedRequests.add(requestData);
+            }
+          });
+
+          // Sort by requestedAt timestamp (newest first)
+          loadedRequests.sort((a, b) {
+            final aTime = a['requestedAt'] ?? 0;
+            final bTime = b['requestedAt'] ?? 0;
+            return bTime.compareTo(aTime);
+          });
+
+          if (mounted) {
+            setState(() {
+              _borrowRequests = loadedRequests;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading borrow requests: $e');
+    }
+  }
+
+  Future<void> _updateRequestStatus(String requestId, String status) async {
+    try {
+      await FirebaseDatabase.instance
+          .ref('borrows/$requestId')
+          .update({'status': status});
+
+      // Reload requests
+      _loadBorrowRequests();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Request ${status == 'approved' ? 'approved' : 'rejected'}',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: status == 'approved' 
+                ? Colors.green 
+                : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error updating request status: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to update request',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   List<Map<String, dynamic>> get filteredBooks {
     if (selectedCategory == 'All') {
       return _myBooks;
@@ -155,12 +239,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
                 children: [
                   InkWell(
                     onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(),
-                        ),
-                      );
+                      Navigator.pop(context);
                     },
                     borderRadius: BorderRadius.circular(30),
                     child: Container(
@@ -178,7 +257,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
                   ),
                   SizedBox(width: titleSpacing),
                   Text(
-                    'Postings',
+                    'Postings & Requests',
                     style: GoogleFonts.poppins(
                       fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
@@ -191,8 +270,107 @@ class _PostingsScreenState extends State<PostingsScreen> {
 
             SizedBox(height: spacing),
 
-            // Category Filter Chips
-            SizedBox(
+            // Tab Selector
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedTabIndex = 0;
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          vertical: isMobile ? 12 : 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _selectedTabIndex == 0 
+                              ? const Color(0xFF003060) 
+                              : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'My Books',
+                            style: GoogleFonts.poppins(
+                              fontSize: isMobile ? 14 : 16,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedTabIndex == 0 
+                                  ? Colors.white 
+                                  : Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: isMobile ? 12 : 16),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedTabIndex = 1;
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          vertical: isMobile ? 12 : 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _selectedTabIndex == 1 
+                              ? const Color(0xFFD67730) 
+                              : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Requests',
+                                style: GoogleFonts.poppins(
+                                  fontSize: isMobile ? 14 : 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: _selectedTabIndex == 1 
+                                      ? Colors.white 
+                                      : Colors.grey[700],
+                                ),
+                              ),
+                              if (_borrowRequests.where((r) => r['status'] == 'pending').isNotEmpty)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${_borrowRequests.where((r) => r['status'] == 'pending').length}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: spacing),
+
+            // Category Filter Chips (only show for My Books tab)
+            if (_selectedTabIndex == 0)
+              SizedBox(
               height: isSmallMobile ? 40.0 : (isMobile ? 42.0 : 45.0),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
@@ -255,7 +433,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
               ),
             ),
 
-            // Books Grid or Empty State
+            // Content Area - Books Grid or Requests List
             Expanded(
               child: _isLoading
                   ? Center(
@@ -268,72 +446,295 @@ class _PostingsScreenState extends State<PostingsScreen> {
                         ),
                       ),
                     )
-                  : filteredBooks.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.library_books_outlined,
-                                  size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
-                                  color: Colors.grey[400],
-                                ),
-                                SizedBox(height: spacing),
-                                Text(
-                                  selectedCategory == 'All'
-                                      ? 'You have no postings'
-                                      : 'No books in $selectedCategory',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(height: spacing * 0.5),
-                                Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isSmallMobile ? 24.0 : (isMobile ? 36.0 : 48.0),
-                                  ),
-                                  child: Text(
-                                    selectedCategory == 'All'
-                                        ? 'Start posting books to share with others'
-                                        : 'You haven\'t posted any books in this category yet',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
-                                      color: Colors.grey[600],
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: horizontalPadding,
-                            vertical: spacing,
-                          ),
-                          child: GridView.builder(
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4)),
-                              childAspectRatio: isSmallMobile ? 0.60 : (isMobile ? 0.65 : 0.70),
-                              crossAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
-                              mainAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
-                            ),
-                            itemCount: filteredBooks.length,
-                            itemBuilder: (context, index) {
-                              return _buildBookCard(filteredBooks[index], isSmallMobile, isMobile);
-                            },
-                          ),
-                        ),
+                  : _selectedTabIndex == 0
+                      ? _buildBooksGrid(isSmallMobile, isMobile, isTablet, horizontalPadding, spacing)
+                      : _buildRequestsList(isSmallMobile, isMobile, isTablet, horizontalPadding, spacing),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBooksGrid(bool isSmallMobile, bool isMobile, bool isTablet, double horizontalPadding, double spacing) {
+    if (filteredBooks.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.library_books_outlined,
+                size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
+                color: Colors.grey[400],
+              ),
+              SizedBox(height: spacing),
+              Text(
+                selectedCategory == 'All'
+                    ? 'You have no postings'
+                    : 'No books in $selectedCategory',
+                style: GoogleFonts.poppins(
+                  fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: spacing * 0.5),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallMobile ? 24.0 : (isMobile ? 36.0 : 48.0),
+                ),
+                child: Text(
+                  selectedCategory == 'All'
+                      ? 'Start posting books to share with others'
+                      : 'You haven\'t posted any books in this category yet',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: spacing,
+      ),
+      child: GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4)),
+          childAspectRatio: isSmallMobile ? 0.60 : (isMobile ? 0.65 : 0.70),
+          crossAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
+          mainAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
+        ),
+        itemCount: filteredBooks.length,
+        itemBuilder: (context, index) {
+          return _buildBookCard(filteredBooks[index], isSmallMobile, isMobile);
+        },
+      ),
+    );
+  }
+
+  Widget _buildRequestsList(bool isSmallMobile, bool isMobile, bool isTablet, double horizontalPadding, double spacing) {
+    if (_borrowRequests.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.inbox_outlined,
+                size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
+                color: Colors.grey[400],
+              ),
+              SizedBox(height: spacing),
+              Text(
+                'No borrow requests',
+                style: GoogleFonts.poppins(
+                  fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: spacing * 0.5),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallMobile ? 24.0 : (isMobile ? 36.0 : 48.0),
+                ),
+                child: Text(
+                  'Borrow requests for your books will appear here',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: spacing,
+      ),
+      itemCount: _borrowRequests.length,
+      itemBuilder: (context, index) {
+        return _buildRequestCard(_borrowRequests[index], isSmallMobile, isMobile);
+      },
+    );
+  }
+
+  Widget _buildRequestCard(Map<String, dynamic> request, bool isSmallMobile, bool isMobile) {
+    final status = request['status'] ?? 'pending';
+    Color statusColor = Colors.orange;
+    IconData statusIcon = Icons.schedule;
+    
+    if (status == 'approved') {
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+    } else if (status == 'rejected') {
+      statusColor = Colors.red;
+      statusIcon = Icons.cancel;
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: isMobile ? 12 : 16),
+      padding: EdgeInsets.all(isMobile ? 16 : 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: statusColor.withOpacity(0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request['bookTitle'] ?? 'Unknown Book',
+                      style: GoogleFonts.poppins(
+                        fontSize: isMobile ? 16 : 18,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF003060),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Requested by ${request['borrowerName'] ?? 'Unknown'}',
+                      style: GoogleFonts.poppins(
+                        fontSize: isMobile ? 13 : 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 14,
+                  vertical: isMobile ? 6 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: statusColor,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      statusIcon,
+                      color: statusColor,
+                      size: isMobile ? 16 : 18,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      status.toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        fontSize: isMobile ? 11 : 12,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (status == 'pending') ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _updateRequestStatus(request['id'], 'approved');
+                    },
+                    icon: const Icon(Icons.check, size: 20),
+                    label: Text(
+                      'Accept',
+                      style: GoogleFonts.poppins(
+                        fontSize: isMobile ? 14 : 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: isMobile ? 12 : 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: isMobile ? 12 : 16),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _updateRequestStatus(request['id'], 'rejected');
+                    },
+                    icon: const Icon(Icons.close, size: 20),
+                    label: Text(
+                      'Decline',
+                      style: GoogleFonts.poppins(
+                        fontSize: isMobile ? 14 : 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        vertical: isMobile ? 12 : 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

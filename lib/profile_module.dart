@@ -20,7 +20,9 @@ import 'edit-profile_module.dart' show ProfileLoginScreen;
 // This module provides the ProfileScreen UI
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  final bool showBackButton;
+  
+  const ProfileScreen({Key? key, this.showBackButton = false}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -382,6 +384,32 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
             ),
             child: Column(
               children: [
+                // Back Button (only show when showBackButton is true)
+                if (widget.showBackButton) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        padding: EdgeInsets.all(isSmallMobile ? 8 : (isMobile ? 9 : 10)),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF003060),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: isSmallMobile ? 20 : (isMobile ? 22 : 24),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: isSmallMobile ? 16 : (isMobile ? 20 : 24)),
+                ],
+
                 // Profile Avatar
                 GestureDetector(
                   onTap: _pickAvatar,
@@ -492,7 +520,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       const Divider(height: 30),
                       _buildMenuItem(
                         icon: Icons.access_time,
-                        title: 'Posting History',
+                        title: 'Posting History & Requests',
                         onTap: () {
                           Navigator.push(
                             context,
