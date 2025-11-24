@@ -211,18 +211,38 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   }
 
   Future<void> _onDonePressed() async {
-    if (usernameController.text.trim().isEmpty) {
-      _showSnackBar('Please enter your name', isError: true);
+    // Check if any changes were made
+    final nameChanged = usernameController.text.trim() != _originalName;
+    final passwordChangeRequested = passwordController.text.isNotEmpty || 
+                                    confirmPasswordController.text.isNotEmpty ||
+                                    currentPasswordController.text.isNotEmpty;
+    
+    if (!nameChanged && !passwordChangeRequested) {
+      _showSnackBar('No changes to save', isError: false);
       return;
     }
     
-    if (usernameController.text.trim().length > _nameMaxLength) {
-      _showSnackBar('Name is too long (max $_nameMaxLength characters)', isError: true);
-      return;
+    // Validate name if changed
+    if (nameChanged) {
+      if (usernameController.text.trim().isEmpty) {
+        _showSnackBar('Please enter your name', isError: true);
+        return;
+      }
+      
+      if (usernameController.text.trim().length > _nameMaxLength) {
+        _showSnackBar('Name is too long (max $_nameMaxLength characters)', isError: true);
+        return;
+      }
     }
     
-    // Validate password changes
-    if (passwordController.text.isNotEmpty) {
+    // Validate password changes if requested
+    if (passwordChangeRequested) {
+      // Check if new password is provided
+      if (passwordController.text.isEmpty) {
+        _showSnackBar('Please enter a new password', isError: true);
+        return;
+      }
+      
       // Check if current password is provided
       if (currentPasswordController.text.isEmpty) {
         _showSnackBar('Please enter your current password to change it', isError: true);
@@ -254,7 +274,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
       }
       
       // If password change is requested, verify current password first
-      if (passwordController.text.isNotEmpty) {
+      if (passwordChangeRequested && passwordController.text.isNotEmpty) {
         try {
           // Re-authenticate with current password
           final credential = EmailAuthProvider.credential(
@@ -273,8 +293,10 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
         }
       }
 
-      // Update display name
-      await user.updateDisplayName(usernameController.text.trim());
+      // Update display name if changed
+      if (nameChanged) {
+        await user.updateDisplayName(usernameController.text.trim());
+      }
 
       // Save avatar as base64 in Firebase Database if there's a new image
       String? avatarBase64;
@@ -294,23 +316,25 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
         }
       }
 
-      // Update Realtime Database
-      final updates = {
-        'username': usernameController.text.trim(),
-        'name': usernameController.text.trim(),
-      };
-      
-      if (avatarBase64 != null) {
-        updates['avatar'] = avatarBase64;
-        print('DEBUG: Avatar added to database updates');
+      // Update Realtime Database if name changed
+      if (nameChanged) {
+        final updates = {
+          'username': usernameController.text.trim(),
+          'name': usernameController.text.trim(),
+        };
+        
+        if (avatarBase64 != null) {
+          updates['avatar'] = avatarBase64;
+          print('DEBUG: Avatar added to database updates');
+        }
+        
+        await FirebaseDatabase.instance
+            .ref('users/${user.uid}')
+            .update(updates);
       }
-      
-      await FirebaseDatabase.instance
-          .ref('users/${user.uid}')
-          .update(updates);
 
       // Update password if provided
-      if (passwordController.text.isNotEmpty) {
+      if (passwordChangeRequested && passwordController.text.isNotEmpty) {
         await user.updatePassword(passwordController.text);
       }
 
@@ -321,7 +345,17 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
         _animationController.reverse();
       });
 
-      _showSnackBar('Profile updated successfully!', isError: false);
+      // Show appropriate success message
+      String successMessage = 'Profile updated successfully!';
+      if (nameChanged && passwordChangeRequested) {
+        successMessage = 'Name and password updated successfully!';
+      } else if (nameChanged) {
+        successMessage = 'Name updated successfully!';
+      } else if (passwordChangeRequested) {
+        successMessage = 'Password updated successfully!';
+      }
+      
+      _showSnackBar(successMessage, isError: false);
 
       // Navigate back after animation
       await Future.delayed(const Duration(milliseconds: 1500));
