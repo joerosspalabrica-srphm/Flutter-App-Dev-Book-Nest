@@ -68,7 +68,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     _loadUnreadCount();
   }
 
-  Future<void> _loadFavorites() async {
+  void _loadFavorites() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       setState(() {
@@ -77,53 +77,58 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
       return;
     }
 
-    try {
-      final snapshot = await FirebaseDatabase.instance
-          .ref('favorites/${user.uid}')
-          .once();
+    // Listen to real-time changes in favorites
+    FirebaseDatabase.instance
+        .ref('favorites/${user.uid}')
+        .onValue
+        .listen((event) {
+      try {
+        final snapshot = event.snapshot;
 
-      if (snapshot.snapshot.exists) {
-        final data = snapshot.snapshot.value as Map?;
-        if (data != null) {
-          final List<Map<String, dynamic>> loadedFavorites = [];
-          
-          data.forEach((key, value) {
-            if (value is Map) {
-              final bookData = Map<String, dynamic>.from(value);
-              bookData['id'] = key; // Store the bookId
-              loadedFavorites.add(bookData);
+        if (snapshot.exists) {
+          final data = snapshot.value as Map?;
+          if (data != null) {
+            final List<Map<String, dynamic>> loadedFavorites = [];
+            
+            data.forEach((key, value) {
+              if (value is Map) {
+                final bookData = Map<String, dynamic>.from(value);
+                bookData['id'] = key; // Store the bookId
+                loadedFavorites.add(bookData);
+              }
+            });
+
+            // Sort by addedAt timestamp (newest first)
+            loadedFavorites.sort((a, b) {
+              final aTime = a['addedAt'] ?? 0;
+              final bTime = b['addedAt'] ?? 0;
+              return bTime.compareTo(aTime);
+            });
+
+            if (mounted) {
+              setState(() {
+                _favorites = loadedFavorites;
+                _isLoading = false;
+              });
             }
-          });
-
-          // Sort by addedAt timestamp (newest first)
-          loadedFavorites.sort((a, b) {
-            final aTime = a['addedAt'] ?? 0;
-            final bTime = b['addedAt'] ?? 0;
-            return bTime.compareTo(aTime);
-          });
-
+          }
+        } else {
           if (mounted) {
             setState(() {
-              _favorites = loadedFavorites;
+              _favorites = [];
               _isLoading = false;
             });
           }
         }
-      } else {
+      } catch (e) {
+        print('Error loading favorites: $e');
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
         }
       }
-    } catch (e) {
-      print('Error loading favorites: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    });
   }
 
   @override
@@ -345,10 +350,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
               bookId: book['bookId'] ?? book['id'] ?? '',
             ),
           ),
-        ).then((_) {
-          // Reload favorites when returning from detail screen
-          _loadFavorites();
-        });
+        );
       },
       child: Container(
         decoration: BoxDecoration(
