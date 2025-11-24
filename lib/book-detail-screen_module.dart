@@ -51,7 +51,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         return;
       }
 
-      // Fetch owner's current name from Firebase
+      // Fetch owner's current name and avatar from Firebase
       final userSnapshot = await FirebaseDatabase.instance
           .ref('users/$ownerId')
           .once();
@@ -59,22 +59,44 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       if (userSnapshot.snapshot.value != null) {
         final userData = userSnapshot.snapshot.value as Map<dynamic, dynamic>;
         _ownerName = userData['username'] ?? widget.book['ownerName'] ?? 'Unknown Owner';
+        
+        // Load owner's avatar from Firebase Database (base64)
+        if (userData['avatar'] != null) {
+          final avatarBase64 = userData['avatar'] as String;
+          if (avatarBase64.isNotEmpty) {
+            try {
+              final bytes = base64Decode(avatarBase64);
+              final tempDir = Directory.systemTemp;
+              final file = File('${tempDir.path}/owner_avatar_$ownerId.png');
+              await file.writeAsBytes(bytes);
+              _ownerAvatar = file;
+              
+              // Also save to SharedPreferences for offline access
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('avatar_base64_$ownerId', avatarBase64);
+            } catch (e) {
+              print('Error loading owner avatar from database: $e');
+            }
+          }
+        }
       } else {
         _ownerName = widget.book['ownerName'] ?? 'Unknown Owner';
       }
 
-      // Load owner's avatar from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final avatarBase64 = prefs.getString('avatar_base64_$ownerId');
-      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
-        try {
-          final bytes = base64Decode(avatarBase64);
-          final tempDir = Directory.systemTemp;
-          final file = File('${tempDir.path}/owner_avatar_$ownerId.png');
-          await file.writeAsBytes(bytes);
-          _ownerAvatar = file;
-        } catch (e) {
-          print('Error loading owner avatar: $e');
+      // Fallback: Load owner's avatar from SharedPreferences if not in database
+      if (_ownerAvatar == null) {
+        final prefs = await SharedPreferences.getInstance();
+        final avatarBase64 = prefs.getString('avatar_base64_$ownerId');
+        if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+          try {
+            final bytes = base64Decode(avatarBase64);
+            final tempDir = Directory.systemTemp;
+            final file = File('${tempDir.path}/owner_avatar_$ownerId.png');
+            await file.writeAsBytes(bytes);
+            _ownerAvatar = file;
+          } catch (e) {
+            print('Error loading owner avatar from cache: $e');
+          }
         }
       }
 
