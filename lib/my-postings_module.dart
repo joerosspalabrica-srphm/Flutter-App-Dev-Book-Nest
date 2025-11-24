@@ -162,9 +162,32 @@ class _PostingsScreenState extends State<PostingsScreen> {
 
   Future<void> _updateRequestStatus(String requestId, String status) async {
     try {
+      // Get the request data to find the bookId
+      final requestSnapshot = await FirebaseDatabase.instance
+          .ref('borrows/$requestId')
+          .once();
+      
+      if (!requestSnapshot.snapshot.exists) {
+        throw Exception('Request not found');
+      }
+      
+      final requestData = requestSnapshot.snapshot.value as Map;
+      final bookId = requestData['bookId'];
+      
+      // Update request status
       await FirebaseDatabase.instance
           .ref('borrows/$requestId')
           .update({'status': status});
+
+      // If approved, mark the book as borrowed
+      if (status == 'approved' && bookId != null) {
+        await FirebaseDatabase.instance
+            .ref('books/$bookId')
+            .update({'status': 'borrowed'});
+        
+        // Reload postings to reflect the status change
+        _loadMyPostings();
+      }
 
       // Reload requests
       _loadBorrowRequests();
@@ -173,7 +196,9 @@ class _PostingsScreenState extends State<PostingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Request ${status == 'approved' ? 'approved' : 'rejected'}',
+              status == 'approved' 
+                  ? 'Request approved and book marked as borrowed'
+                  : 'Request rejected',
               style: GoogleFonts.poppins(),
             ),
             backgroundColor: status == 'approved' 
