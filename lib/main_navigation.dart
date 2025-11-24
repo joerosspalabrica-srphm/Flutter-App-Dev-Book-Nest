@@ -20,8 +20,16 @@ class _MainNavigationState extends State<MainNavigation> with TickerProviderStat
   late List<AnimationController> _iconAnimationControllers;
   int _unreadCount = 0;
   
-  final List<Widget> _screens = [
-    const HomeScreen(),
+  List<Widget> get _screens => [
+    HomeScreen(
+      onNavigationChange: (index) {
+        setState(() {
+          _iconAnimationControllers[_currentIndex].reverse();
+          _currentIndex = index;
+          _iconAnimationControllers[index].forward();
+        });
+      },
+    ),
     const FavoritesScreen(),
     const ChatsScreen(),
     const ProfileScreen(),

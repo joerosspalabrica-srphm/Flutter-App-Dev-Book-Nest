@@ -17,7 +17,9 @@ import 'profile_module.dart' show ProfileScreen;
 // This module provides the HomeScreen UI
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final Function(int)? onNavigationChange;
+  
+  const HomeScreen({Key? key, this.onNavigationChange}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -262,21 +264,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                               GestureDetector(
                                 onTap: () {
-                                  print('DEBUG: Avatar tapped, navigating to profile');
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const ProfileScreen(),
-                                    ),
-                                  ).then((_) {
-                                    // Reload avatar when coming back from profile
-                                    _loadSavedAvatar();
-                                    // Reset to home when coming back from profile
-                                    setState(() {
-                                      selectedNavIndex = 0;
-                                      _iconAnimationControllers[0].forward();
-                                    });
-                                  });
+                                  print('DEBUG: Avatar tapped, switching to profile tab');
+                                  // Call parent callback to switch to profile tab
+                                  if (widget.onNavigationChange != null) {
+                                    widget.onNavigationChange!(3);
+                                  }
                                 },
                                 child: CircleAvatar(
                                   radius: avatarRadius,
