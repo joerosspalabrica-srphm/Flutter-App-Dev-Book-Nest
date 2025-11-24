@@ -223,6 +223,68 @@ class _PostingsScreenState extends State<PostingsScreen> {
     }
   }
 
+  Future<void> _markAsReturned(String requestId) async {
+    try {
+      // Get the request data to find the bookId
+      final requestSnapshot = await FirebaseDatabase.instance
+          .ref('borrows/$requestId')
+          .once();
+      
+      if (!requestSnapshot.snapshot.exists) {
+        throw Exception('Request not found');
+      }
+      
+      final requestData = requestSnapshot.snapshot.value as Map;
+      final bookId = requestData['bookId'];
+      
+      if (bookId == null) {
+        throw Exception('Book ID not found in request');
+      }
+
+      // Mark the book as available
+      await FirebaseDatabase.instance
+          .ref('books/$bookId')
+          .update({'status': 'available'});
+      
+      // Update the request to mark as returned
+      await FirebaseDatabase.instance
+          .ref('borrows/$requestId')
+          .update({
+            'returned': true,
+            'returnedAt': DateTime.now().millisecondsSinceEpoch,
+          });
+
+      // Reload postings and requests
+      _loadMyPostings();
+      _loadBorrowRequests();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Book marked as returned and available again',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error marking book as returned: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to mark book as returned',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   List<Map<String, dynamic>> get filteredBooks {
     if (selectedCategory == 'All') {
       return _myBooks;
@@ -607,10 +669,16 @@ class _PostingsScreenState extends State<PostingsScreen> {
 
   Widget _buildRequestCard(Map<String, dynamic> request, bool isSmallMobile, bool isMobile) {
     final status = request['status'] ?? 'pending';
+    final isReturned = request['returned'] == true;
     Color statusColor = Colors.orange;
     IconData statusIcon = Icons.schedule;
+    String statusText = status.toUpperCase();
     
-    if (status == 'approved') {
+    if (isReturned) {
+      statusColor = Colors.blue;
+      statusIcon = Icons.assignment_return;
+      statusText = 'RETURNED';
+    } else if (status == 'approved') {
       statusColor = Colors.green;
       statusIcon = Icons.check_circle;
     } else if (status == 'rejected') {
@@ -689,7 +757,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      status.toUpperCase(),
+                      statusText,
                       style: GoogleFonts.poppins(
                         fontSize: isMobile ? 11 : 12,
                         fontWeight: FontWeight.w600,
@@ -757,6 +825,35 @@ class _PostingsScreenState extends State<PostingsScreen> {
                   ),
                 ),
               ],
+            ),
+          ],
+          if (status == 'approved' && !isReturned) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _markAsReturned(request['id']);
+                },
+                icon: const Icon(Icons.assignment_return, size: 20),
+                label: Text(
+                  'Mark as Returned',
+                  style: GoogleFonts.poppins(
+                    fontSize: isMobile ? 14 : 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF003060),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(
+                    vertical: isMobile ? 12 : 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
             ),
           ],
         ],
