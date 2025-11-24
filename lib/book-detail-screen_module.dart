@@ -26,12 +26,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   String? _ownerName;
   File? _ownerAvatar;
   bool _isLoadingOwner = true;
+  String? _borrowStatus; // 'none', 'pending', 'approved', 'rejected'
+  bool _hasUnreturnedBooks = false;
 
   @override
   void initState() {
     super.initState();
     _checkIfFavorite();
     _loadOwnerProfile();
+    _checkBorrowStatus();
+    _checkUnreturnedBooks();
   }
   
   // Generate a consistent chat ID for two users
@@ -112,6 +116,163 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           _ownerName = widget.book['ownerName'] ?? 'Unknown Owner';
           _isLoadingOwner = false;
         });
+      }
+    }
+  }
+
+  Future<void> _checkBorrowStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Check if user has a borrow request for this book
+      final snapshot = await FirebaseDatabase.instance
+          .ref('borrows')
+          .orderByChild('borrowerId')
+          .equalTo(user.uid)
+          .once();
+
+      if (snapshot.snapshot.exists) {
+        final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
+        // Find request for this specific book
+        for (var entry in data.entries) {
+          final borrowData = entry.value as Map<dynamic, dynamic>;
+          if (borrowData['bookId'] == widget.bookId) {
+            if (mounted) {
+              setState(() {
+                _borrowStatus = borrowData['status']; // 'pending', 'approved', 'rejected'
+              });
+            }
+            return;
+          }
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _borrowStatus = 'none';
+        });
+      }
+    } catch (e) {
+      print('Error checking borrow status: $e');
+      if (mounted) {
+        setState(() {
+          _borrowStatus = 'none';
+        });
+      }
+    }
+  }
+
+  Future<void> _checkUnreturnedBooks() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // Check if user has any unreturned books
+      final snapshot = await FirebaseDatabase.instance
+          .ref('borrows')
+          .orderByChild('borrowerId')
+          .equalTo(user.uid)
+          .once();
+
+      if (snapshot.snapshot.exists) {
+        final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
+        // Check if any approved borrow hasn't been returned
+        for (var entry in data.values) {
+          final borrowData = entry as Map<dynamic, dynamic>;
+          if (borrowData['status'] == 'approved' && borrowData['returned'] != true) {
+            if (mounted) {
+              setState(() {
+                _hasUnreturnedBooks = true;
+              });
+            }
+            return;
+          }
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _hasUnreturnedBooks = false;
+        });
+      }
+    } catch (e) {
+      print('Error checking unreturned books: $e');
+    }
+  }
+
+  Future<void> _sendBorrowRequest() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please log in to request books',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: const Color(0xFF003060),
+        ),
+      );
+      return;
+    }
+
+    // Check if user has unreturned books
+    if (_hasUnreturnedBooks) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'You cannot borrow books until you return your current borrowed book',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Create borrow request
+      final borrowRef = FirebaseDatabase.instance.ref('borrows').push();
+      await borrowRef.set({
+        'bookId': widget.bookId,
+        'bookTitle': widget.book['title'],
+        'borrowerId': user.uid,
+        'borrowerName': user.displayName ?? 'Unknown User',
+        'ownerId': widget.book['ownerId'],
+        'ownerName': _ownerName ?? 'Unknown Owner',
+        'status': 'pending',
+        'requestedAt': ServerValue.timestamp,
+        'returned': false,
+      });
+
+      setState(() {
+        _borrowStatus = 'pending';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Borrow request sent successfully!',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: const Color(0xFFD67730),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error sending borrow request: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to send request: ${e.toString()}',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -632,217 +793,34 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           ],
                         ),
                       ),
-                      if (!isOwner)
-                        InkWell(
-                          onTap: () async {
-                            final currentUser = FirebaseAuth.instance.currentUser;
-                            if (currentUser == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.error_outline,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        'Please log in to send messages',
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                  backgroundColor: const Color(0xFF003060),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  margin: const EdgeInsets.all(16),
-                                ),
-                              );
-                              return;
-                            }
-                            
-                            // Get owner's UID - try multiple possible field names
-                            final ownerUid = widget.book['ownerId'] ?? widget.book['uid'] ?? widget.book['userId'];
-                            if (ownerUid == null || ownerUid.toString().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.error_outline,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        'Owner information not available',
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                  backgroundColor: const Color(0xFF003060),
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  margin: const EdgeInsets.all(16),
-                                ),
-                              );
-                              return;
-                            }
-                            
-                            // Create or get chat ID
-                            final chatId = _generateChatId(currentUser.uid, ownerUid);
-                            print('DEBUG: Creating/updating chat. chatId: $chatId, currentUserId: ${currentUser.uid}, ownerId: $ownerUid');
-                            
-                            // Fetch current user's name from Firebase
-                            String currentUserName = 'User';
-                            try {
-                              final currentUserSnapshot = await FirebaseDatabase.instance
-                                  .ref('users/${currentUser.uid}')
-                                  .once();
-                              
-                              print('DEBUG: Current user snapshot exists: ${currentUserSnapshot.snapshot.exists}');
-                              if (currentUserSnapshot.snapshot.value != null) {
-                                final currentUserData = currentUserSnapshot.snapshot.value as Map<dynamic, dynamic>;
-                                currentUserName = currentUserData['username'] ?? currentUser.displayName ?? 'User';
-                                print('DEBUG: Current user name fetched: $currentUserName');
-                              } else {
-                                currentUserName = currentUser.displayName ?? 'User';
-                                print('DEBUG: No current user data, using displayName: $currentUserName');
-                              }
-                            } catch (e) {
-                              print('Error fetching current user name: $e');
-                              currentUserName = currentUser.displayName ?? 'User';
-                            }
-                            
-                            // Fetch owner's current name from Firebase
-                            String ownerName = 'Book Owner';
-                            try {
-                              final ownerSnapshot = await FirebaseDatabase.instance
-                                  .ref('users/$ownerUid')
-                                  .once();
-                              
-                              print('DEBUG: Owner snapshot exists: ${ownerSnapshot.snapshot.exists}');
-                              if (ownerSnapshot.snapshot.value != null) {
-                                final ownerData = ownerSnapshot.snapshot.value as Map<dynamic, dynamic>;
-                                ownerName = ownerData['username'] ?? _ownerName ?? 'Book Owner';
-                                print('DEBUG: Owner name fetched: $ownerName');
-                              } else {
-                                ownerName = _ownerName ?? widget.book['ownerName'] ?? 'Book Owner';
-                                print('DEBUG: No owner data, using fallback: $ownerName');
-                              }
-                            } catch (e) {
-                              print('Error fetching owner name: $e');
-                              ownerName = _ownerName ?? widget.book['ownerName'] ?? 'Book Owner';
-                            }
-                            
-                            print('DEBUG: Final names - Current: $currentUserName, Owner: $ownerName');
-                            
-                            // Create chat metadata in Firebase
-                            final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
-                            
-                            // Check if chat already exists
-                            final existingChat = await chatRef.once();
-                            
-                            if (existingChat.snapshot.exists) {
-                              print('DEBUG: Updating existing chat with current names');
-                              // Update existing chat with current names
-                              await chatRef.update({
-                                'participantNames': {
-                                  currentUser.uid: currentUserName,
-                                  ownerUid: ownerName,
-                                },
-                                'lastMessage': 'Chat about ${widget.book['title']}',
-                                'lastMessageTime': ServerValue.timestamp,
-                              });
-                            } else {
-                              print('DEBUG: Creating new chat with current names');
-                              // Create new chat
-                              await chatRef.set({
-                                'participants': {
-                                  currentUser.uid: true,
-                                  ownerUid: true,
-                                },
-                                'participantNames': {
-                                  currentUser.uid: currentUserName,
-                                  ownerUid: ownerName,
-                                },
-                                'lastMessage': 'Chat about ${widget.book['title']}',
-                                'lastMessageTime': ServerValue.timestamp,
-                                'bookId': widget.bookId,
-                                'bookTitle': widget.book['title'],
-                              });
-                            }
-                            
-                            print('DEBUG: Navigating to ChatScreen with chatName: $ownerName, otherUserId: $ownerUid');
-                            
-                            // Navigate to chat screen
-                            if (!context.mounted) return;
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                  chatId: chatId,
-                                  chatName: ownerName,
-                                  isSystemChat: false,
-                                  otherUserId: ownerUid,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 16 : 20, 
-                              vertical: isMobile ? 10 : 12
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD67730),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFD67730).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.message,
-                                  color: Colors.white,
-                                  size: isMobile ? 20 : 22,
-                                ),
-                                SizedBox(width: isMobile ? 8 : 10),
-                                Text(
-                                  'Message',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: bodyTextSize,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
               ),
+
+              // Request and Message Buttons (only show if not owner)
+              if (!isOwner)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Column(
+                    children: [
+                      SizedBox(height: isMobile ? 16 : 20),
+                      Row(
+                        children: [
+                          // Request Button
+                          Expanded(
+                            child: _buildRequestButton(isMobile, bodyTextSize),
+                          ),
+                          SizedBox(width: isMobile ? 12 : 16),
+                          // Message Button
+                          Expanded(
+                            child: _buildMessageButton(isMobile, bodyTextSize),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
 
               SizedBox(height: isMobile ? 32 : 40),
             ],
@@ -850,6 +828,244 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRequestButton(bool isMobile, double bodyTextSize) {
+    String buttonText = 'Request';
+    Color buttonColor = const Color(0xFF003060);
+    IconData buttonIcon = Icons.book_outlined;
+    VoidCallback? onTap = _sendBorrowRequest;
+
+    if (_borrowStatus == 'pending') {
+      buttonText = 'Pending';
+      buttonColor = Colors.orange;
+      buttonIcon = Icons.schedule;
+      onTap = null; // Disable button
+    } else if (_borrowStatus == 'approved') {
+      buttonText = 'Approved';
+      buttonColor = Colors.green;
+      buttonIcon = Icons.check_circle_outline;
+      onTap = null; // Disable button
+    } else if (_borrowStatus == 'rejected') {
+      buttonText = 'Rejected';
+      buttonColor = Colors.red;
+      buttonIcon = Icons.cancel_outlined;
+      onTap = null; // Disable button
+    } else if (_hasUnreturnedBooks) {
+      buttonText = 'Cannot Borrow';
+      buttonColor = Colors.grey;
+      buttonIcon = Icons.block;
+      onTap = _sendBorrowRequest; // Show error message when tapped
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 16 : 20, 
+          vertical: isMobile ? 14 : 16
+        ),
+        decoration: BoxDecoration(
+          color: onTap == null ? buttonColor.withOpacity(0.6) : buttonColor,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: onTap != null ? [
+            BoxShadow(
+              color: buttonColor.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ] : [],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              buttonIcon,
+              color: Colors.white,
+              size: isMobile ? 20 : 22,
+            ),
+            SizedBox(width: isMobile ? 8 : 10),
+            Text(
+              buttonText,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: bodyTextSize,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageButton(bool isMobile, double bodyTextSize) {
+    return InkWell(
+      onTap: () async {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Please log in to send messages',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 2),
+              backgroundColor: const Color(0xFF003060),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+          return;
+        }
+        
+        // Get owner's UID
+        final ownerUid = widget.book['ownerId'] ?? widget.book['uid'] ?? widget.book['userId'];
+        if (ownerUid == null || ownerUid.toString().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Owner information not available',
+                style: GoogleFonts.poppins(),
+              ),
+              backgroundColor: const Color(0xFF003060),
+            ),
+          );
+          return;
+        }
+        
+        // Create or get chat ID
+        final chatId = _generateChatId(currentUser.uid, ownerUid);
+        
+        // Fetch current user's name
+        String currentUserName = currentUser.displayName ?? 'User';
+        try {
+          final currentUserSnapshot = await FirebaseDatabase.instance
+              .ref('users/${currentUser.uid}')
+              .once();
+          
+          if (currentUserSnapshot.snapshot.value != null) {
+            final currentUserData = currentUserSnapshot.snapshot.value as Map<dynamic, dynamic>;
+            currentUserName = currentUserData['username'] ?? currentUser.displayName ?? 'User';
+          }
+        } catch (e) {
+          print('Error fetching current user name: $e');
+        }
+        
+        // Fetch owner's name
+        String ownerName = _ownerName ?? 'Book Owner';
+        try {
+          final ownerSnapshot = await FirebaseDatabase.instance
+              .ref('users/$ownerUid')
+              .once();
+          
+          if (ownerSnapshot.snapshot.value != null) {
+            final ownerData = ownerSnapshot.snapshot.value as Map<dynamic, dynamic>;
+            ownerName = ownerData['username'] ?? _ownerName ?? 'Book Owner';
+          }
+        } catch (e) {
+          print('Error fetching owner name: $e');
+        }
+        
+        // Create/update chat metadata
+        final chatRef = FirebaseDatabase.instance.ref('chats/$chatId');
+        final existingChat = await chatRef.once();
+        
+        if (existingChat.snapshot.exists) {
+          await chatRef.update({
+            'participantNames': {
+              currentUser.uid: currentUserName,
+              ownerUid: ownerName,
+            },
+            'lastMessage': 'Chat about ${widget.book['title']}',
+            'lastMessageTime': ServerValue.timestamp,
+          });
+        } else {
+          await chatRef.set({
+            'participants': {
+              currentUser.uid: true,
+              ownerUid: true,
+            },
+            'participantNames': {
+              currentUser.uid: currentUserName,
+              ownerUid: ownerName,
+            },
+            'lastMessage': 'Chat about ${widget.book['title']}',
+            'lastMessageTime': ServerValue.timestamp,
+            'bookId': widget.bookId,
+            'bookTitle': widget.book['title'],
+          });
+        }
+        
+        // Navigate to chat screen
+        if (!context.mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(
+              chatId: chatId,
+              chatName: ownerName,
+              isSystemChat: false,
+              otherUserId: ownerUid,
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 16 : 20, 
+          vertical: isMobile ? 14 : 16
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD67730),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD67730).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.message,
+              color: Colors.white,
+              size: isMobile ? 20 : 22,
+            ),
+            SizedBox(width: isMobile ? 8 : 10),
+            Text(
+              'Message',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: bodyTextSize,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
