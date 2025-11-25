@@ -38,6 +38,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
     _tabController = TabController(length: 4, vsync: this);
     _loadUserData();
     _loadTransactionHistory();
+    _ensureEmailInDatabase();
   }
 
   @override
@@ -84,6 +85,28 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
           onRetry: _loadUserData,
         );
       }
+    }
+  }
+
+  Future<void> _ensureEmailInDatabase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) return;
+
+    try {
+      // Check if email exists in database
+      final snapshot = await FirebaseDatabase.instance
+          .ref('users/${user.uid}/email')
+          .once();
+
+      if (!snapshot.snapshot.exists) {
+        // Email not in database, save it
+        await FirebaseDatabase.instance
+            .ref('users/${user.uid}')
+            .update({'email': user.email});
+        print('DEBUG: Email saved to database: ${user.email}');
+      }
+    } catch (e) {
+      print('DEBUG: Error ensuring email in database: $e');
     }
   }
 
