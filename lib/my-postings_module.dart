@@ -7,6 +7,7 @@ import 'book-detail-screen_module.dart' show BookDetailScreen;
 import 'notification_system_module.dart';
 import 'book_management_module.dart' show BookManagementScreen;
 import 'error_handler_module.dart';
+import 'rating_system_module.dart' show RatingDialog;
 
 void main() {
   runApp(const MyApp());
@@ -283,6 +284,7 @@ class _PostingsScreenState extends State<PostingsScreen> {
       
       final requestData = requestSnapshot.snapshot.value as Map;
       final bookId = requestData['bookId'];
+      final borrowerId = requestData['userId'];
       
       if (bookId == null) {
         throw Exception('Book ID not found in request');
@@ -315,6 +317,14 @@ class _PostingsScreenState extends State<PostingsScreen> {
             backgroundColor: Colors.blue,
           ),
         );
+
+        // Show rating dialog after marking as returned
+        if (borrowerId != null) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            _showRatingDialog(borrowerId, requestId);
+          }
+        }
       }
     } catch (e) {
       print('Error marking book as returned: $e');
@@ -330,6 +340,57 @@ class _PostingsScreenState extends State<PostingsScreen> {
         );
       }
     }
+  }
+
+  Future<void> _showRatingDialog(String userId, String transactionId) async {
+    // Get borrower's name and book title
+    String borrowerName = 'User';
+    String bookTitle = 'Book';
+    
+    try {
+      // Get borrower name
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/$userId/username')
+          .once();
+      if (userSnapshot.snapshot.exists) {
+        borrowerName = userSnapshot.snapshot.value.toString();
+      }
+      
+      // Get book title from the request
+      final requestSnapshot = await FirebaseDatabase.instance
+          .ref('borrows/$transactionId')
+          .once();
+      if (requestSnapshot.snapshot.exists) {
+        final requestData = requestSnapshot.snapshot.value as Map?;
+        final bookId = requestData?['bookId'];
+        if (bookId != null) {
+          final bookSnapshot = await FirebaseDatabase.instance
+              .ref('books/$bookId/title')
+              .once();
+          if (bookSnapshot.snapshot.exists) {
+            bookTitle = bookSnapshot.snapshot.value.toString();
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading user/book data for rating: $e');
+    }
+    
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return RatingDialog(
+          ratedUserId: userId,
+          ratedUserName: borrowerName,
+          bookTitle: bookTitle,
+          transactionId: transactionId,
+          isRatingOwner: true, // Owner is rating the borrower
+        );
+      },
+    );
   }
 
   List<Map<String, dynamic>> get filteredBooks {
@@ -1027,6 +1088,63 @@ class _PostingsScreenState extends State<PostingsScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
+              ),
+            ),
+          ],
+          // Show "Rate Borrower" button if returned but not yet rated
+          if (isReturned && request['ownerRated'] != true) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _showRatingDialog(request['borrowerId'], request['id']);
+                },
+                icon: const Icon(Icons.star_rate, size: 20),
+                label: Text(
+                  'Rate Borrower',
+                  style: GoogleFonts.poppins(
+                    fontSize: isMobile ? 14 : 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD67730),
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(
+                    vertical: isMobile ? 12 : 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          // Show rated indicator
+          if (isReturned && request['ownerRated'] == true) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'You rated this borrower',
+                    style: GoogleFonts.poppins(
+                      fontSize: isMobile ? 13 : 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.green.shade700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
