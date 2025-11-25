@@ -15,6 +15,7 @@ import 'about_us.dart' show AboutBookNestScreen;
 import 'logout_module.dart';
 import 'delete-account_module.dart';
 import 'edit-profile_module.dart' show ProfileLoginScreen;
+import 'profile_settings_module.dart' show ProfileSettingsScreen;
 
 // Note: main() is in main.dart, not here
 // This module provides the ProfileScreen UI
@@ -32,6 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   int selectedNavIndex = 3; // Profile is at index 3
   late List<AnimationController> _iconAnimationControllers;
   String userName = 'User'; // Default username
+  String userBio = ''; // User bio
   File? _avatarImage; // Store selected avatar image
   final ImagePicker _imagePicker = ImagePicker();
   int _unreadCount = 0;
@@ -55,6 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
   void initState() {
     super.initState();
     _loadUserName(); // Load username from Firebase
+    _loadUserBio(); // Load user bio from Firebase
     _loadSavedAvatar(); // Load saved avatar
     _loadUnreadCount(); // Load unread message count
     _iconAnimationControllers = List.generate(
@@ -106,6 +109,39 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
       }
     } else {
       print('DEBUG: No user logged in (profile), using default "User"');
+    }
+  }
+
+  void _loadUserBio() {
+    final user = FirebaseAuth.instance.currentUser;
+    
+    if (user != null) {
+      Future.microtask(() async {
+        try {
+          final bioRef = FirebaseDatabase.instance.ref('users/${user.uid}/bio');
+          final snapshot = await bioRef
+              .get()
+              .timeout(const Duration(seconds: 5), onTimeout: () {
+            print('DEBUG: Bio fetch timed out');
+            throw TimeoutException('Bio fetch timeout', const Duration(seconds: 5));
+          });
+
+          if (snapshot.exists && snapshot.value != null) {
+            if (mounted) {
+              setState(() {
+                userBio = snapshot.value.toString();
+              });
+              print('DEBUG: Loaded user bio from Firebase: $userBio');
+            }
+          } else {
+            print('DEBUG: No bio found in database');
+          }
+        } catch (error) {
+          print('DEBUG: Error fetching bio from database: $error');
+        }
+      });
+    } else {
+      print('DEBUG: No user logged in, cannot load bio');
     }
   }
 
@@ -485,6 +521,25 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                   textAlign: TextAlign.center,
                 ),
                 
+                // Bio (if exists)
+                if (userBio.isNotEmpty) ...[
+                  SizedBox(height: isSmallMobile ? 8 : 12),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: isSmallMobile ? 24 : 32),
+                    child: Text(
+                      userBio,
+                      style: poppinsStyle(
+                        fontSize: isSmallMobile ? 12 : 13,
+                        color: Colors.grey[600]!,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+                
                 SizedBox(height: menuSpacing),
                 
                 // Menu Items Container
@@ -513,6 +568,23 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                             _loadUserName(); // Reload username
                             _loadSavedAvatar(); // Reload avatar
                           }
+                        },
+                        isSmallMobile: isSmallMobile,
+                        isMobile: isMobile,
+                      ),
+                      const Divider(height: 30),
+                      _buildMenuItem(
+                        icon: Icons.settings_outlined,
+                        title: 'Profile & Settings',
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProfileSettingsScreen(),
+                            ),
+                          );
+                          // Reload bio when returning from settings
+                          _loadUserBio();
                         },
                         isSmallMobile: isSmallMobile,
                         isMobile: isMobile,

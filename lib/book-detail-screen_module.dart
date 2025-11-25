@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'message_module.dart' show ChatScreen;
 import 'edit-book-postings_module.dart' show EditBookPostingForm;
 import 'notification_system_module.dart';
+import 'profile_others_module.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final Map<String, dynamic> book;
@@ -787,18 +788,32 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               // Owner Info Card
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Container(
-                  padding: EdgeInsets.all(isMobile ? 16 : 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFFE5E7EB),
-                      width: 1,
+                child: GestureDetector(
+                  onTap: () {
+                    if (widget.book['ownerId'] != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OtherUserProfileScreen(
+                            userId: widget.book['ownerId'],
+                            userName: _ownerName,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(isMobile ? 16 : 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
+                    child: Row(
+                      children: [
                       _isLoadingOwner
                           ? CircleAvatar(
                               radius: isMobile ? 28 : 32,
@@ -856,7 +871,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           ],
                         ),
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
