@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'message_module.dart' show ChatScreen;
 import 'edit-book-postings_module.dart' show EditBookPostingForm;
+import 'notification_system_module.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final Map<String, dynamic> book;
@@ -233,19 +234,39 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
 
     try {
+      // Get requester name
+      String requesterName = user.displayName ?? 'Unknown User';
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/${user.uid}/username')
+          .once();
+      if (userSnapshot.snapshot.exists) {
+        requesterName = userSnapshot.snapshot.value.toString();
+      }
+      
       // Create borrow request
       final borrowRef = FirebaseDatabase.instance.ref('borrows').push();
       await borrowRef.set({
         'bookId': widget.bookId,
         'bookTitle': widget.book['title'],
         'borrowerId': user.uid,
-        'borrowerName': user.displayName ?? 'Unknown User',
+        'borrowerName': requesterName,
+        'userId': user.uid,
+        'requesterName': requesterName,
         'ownerId': widget.book['ownerId'],
         'ownerName': _ownerName ?? 'Unknown Owner',
         'status': 'pending',
         'requestedAt': ServerValue.timestamp,
         'returned': false,
       });
+
+      // Send notification to book owner
+      final notificationSystem = NotificationSystemModule();
+      await notificationSystem.notifyBorrowRequest(
+        ownerId: widget.book['ownerId'],
+        requesterName: requesterName,
+        bookTitle: widget.book['title'],
+        requestId: borrowRef.key ?? '',
+      );
 
       setState(() {
         _borrowStatus = 'pending';

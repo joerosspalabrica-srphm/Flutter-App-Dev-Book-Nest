@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
 import 'book-detail-screen_module.dart' show BookDetailScreen;
+import 'notification_system_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -178,11 +179,43 @@ class _PostingsScreenState extends State<PostingsScreen> {
       
       final requestData = requestSnapshot.snapshot.value as Map;
       final bookId = requestData['bookId'];
+      final requesterId = requestData['userId'];
+      final bookTitle = requestData['bookTitle'] ?? 'Unknown';
+      
+      // Get owner name
+      final currentUser = FirebaseAuth.instance.currentUser;
+      String ownerName = 'Book owner';
+      if (currentUser != null) {
+        final userSnapshot = await FirebaseDatabase.instance
+            .ref('users/${currentUser.uid}/username')
+            .once();
+        if (userSnapshot.snapshot.exists) {
+          ownerName = userSnapshot.snapshot.value.toString();
+        }
+      }
       
       // Update request status
       await FirebaseDatabase.instance
           .ref('borrows/$requestId')
           .update({'status': status});
+
+      // Send notification to requester
+      final notificationSystem = NotificationSystemModule();
+      if (status == 'approved') {
+        await notificationSystem.notifyRequestApproved(
+          requesterId: requesterId,
+          bookTitle: bookTitle,
+          ownerName: ownerName,
+          requestId: requestId,
+        );
+      } else if (status == 'rejected') {
+        await notificationSystem.notifyRequestRejected(
+          requesterId: requesterId,
+          bookTitle: bookTitle,
+          ownerName: ownerName,
+          requestId: requestId,
+        );
+      }
 
       // If approved, mark the book as borrowed
       if (status == 'approved' && bookId != null) {

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'notification_system_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -245,6 +246,26 @@ class _ChatScreenState extends State<ChatScreen> {
         await _chatRef.update({
           'readBy/${widget.otherUserId}': false,
         });
+        
+        // Get sender name and send notification
+        String senderName = currentUser.displayName ?? 'Someone';
+        final userSnapshot = await FirebaseDatabase.instance
+            .ref('users/${currentUser.uid}/username')
+            .once();
+        if (userSnapshot.snapshot.exists) {
+          senderName = userSnapshot.snapshot.value.toString();
+        }
+        
+        // Send notification to recipient
+        final notificationSystem = NotificationSystemModule();
+        await notificationSystem.notifyMessageReceived(
+          recipientId: widget.otherUserId!,
+          senderName: senderName,
+          messagePreview: messageText.length > 50 
+              ? '${messageText.substring(0, 50)}...' 
+              : messageText,
+          chatId: widget.chatId!,
+        );
       }
       
       _scrollToBottom();
