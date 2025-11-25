@@ -82,10 +82,28 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      // Ensure email is saved in database for existing users
+      if (userCredential.user != null && userCredential.user!.email != null) {
+        try {
+          final snapshot = await FirebaseDatabase.instance
+              .ref('users/${userCredential.user!.uid}/email')
+              .once();
+          
+          if (!snapshot.snapshot.exists) {
+            await FirebaseDatabase.instance
+                .ref('users/${userCredential.user!.uid}')
+                .update({'email': userCredential.user!.email});
+            print('DEBUG: Email saved to database on login: ${userCredential.user!.email}');
+          }
+        } catch (e) {
+          print('DEBUG: Error saving email on login: $e');
+        }
+      }
 
       if (!mounted) return;
 
