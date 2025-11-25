@@ -31,6 +31,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   double userRating = 0.0;
   int totalRatings = 0;
   List<Map<String, dynamic>> userPostings = [];
+  List<Map<String, dynamic>> userRatingsWithComments = [];
   bool isLoading = true;
   
   // Privacy settings
@@ -69,6 +70,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
       _loadUserRating(),
       _loadUserPostings(),
       _loadContactInfo(),
+      _loadUserRatingsWithComments(),
     ]);
 
     setState(() {
@@ -229,6 +231,54 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
       }
     } catch (e) {
       print('DEBUG: Error loading postings: $e');
+    }
+  }
+
+  Future<void> _loadUserRatingsWithComments() async {
+    try {
+      final ratingsRef = FirebaseDatabase.instance.ref('ratings');
+      final snapshot = await ratingsRef
+          .orderByChild('ratedUserId')
+          .equalTo(widget.userId)
+          .get()
+          .timeout(const Duration(seconds: 5));
+
+      List<Map<String, dynamic>> loadedRatings = [];
+
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+
+        for (var entry in data.entries) {
+          final ratingData = Map<String, dynamic>.from(entry.value as Map);
+          ratingData['id'] = entry.key;
+
+          // Load rater name
+          if (ratingData['raterUserId'] != null) {
+            final raterSnapshot = await FirebaseDatabase.instance
+                .ref('users/${ratingData['raterUserId']}/username')
+                .get();
+            if (raterSnapshot.exists) {
+              ratingData['raterName'] = raterSnapshot.value;
+            }
+          }
+
+          // Only include ratings with comments
+          if (ratingData['comment'] != null && ratingData['comment'].toString().trim().isNotEmpty) {
+            loadedRatings.add(ratingData);
+          }
+        }
+      }
+
+      // Sort by timestamp (newest first)
+      loadedRatings.sort((a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0));
+
+      if (mounted) {
+        setState(() {
+          userRatingsWithComments = loadedRatings;
+        });
+      }
+    } catch (e) {
+      print('DEBUG: Error loading ratings with comments: $e');
     }
   }
 
@@ -506,9 +556,164 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                   ],
                 ),
               ),
+
+              // Ratings & Reviews Section
+              if (userRatingsWithComments.isNotEmpty) ...[
+                SizedBox(height: isSmallMobile ? 24 : 28),
+                Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  padding: EdgeInsets.all(isSmallMobile ? 16 : 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.rate_review_outlined,
+                            color: Color(0xFF003060),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Reviews',
+                            style: poppinsStyle(
+                              fontSize: isSmallMobile ? 18 : 20,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF003060),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '${userRatingsWithComments.length}',
+                            style: poppinsStyle(
+                              fontSize: isSmallMobile ? 16 : 18,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFD67730),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: userRatingsWithComments.length,
+                        itemBuilder: (context, index) {
+                          return _buildRatingCard(
+                            userRatingsWithComments[index],
+                            isSmallMobile,
+                            isMobile,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRatingCard(Map<String, dynamic> rating, bool isSmallMobile, bool isMobile) {
+    final stars = rating['rating'] ?? 0;
+    final comment = rating['comment'] ?? '';
+    final raterName = rating['raterName'] ?? 'Anonymous';
+    final bookTitle = rating['bookTitle'] ?? '';
+    final timestamp = rating['timestamp'] ?? 0;
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final dateStr = '${date.day}/${date.month}/${date.year}';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(isSmallMobile ? 14 : 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      raterName,
+                      style: poppinsStyle(
+                        fontSize: isSmallMobile ? 15 : 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF003060),
+                      ),
+                    ),
+                    if (bookTitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'for "$bookTitle"',
+                        style: poppinsStyle(
+                          fontSize: isSmallMobile ? 12 : 13,
+                          color: Colors.grey[600]!,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // Stars
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < stars ? Icons.star : Icons.star_border,
+                    size: isSmallMobile ? 16 : 18,
+                    color: const Color(0xFFD67730),
+                  );
+                }),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Comment
+          Text(
+            comment,
+            style: poppinsStyle(
+              fontSize: isSmallMobile ? 13 : 14,
+              color: Colors.grey[800]!,
+              height: 1.5,
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // Date
+          Row(
+            children: [
+              Icon(Icons.calendar_today, size: isSmallMobile ? 12 : 14, color: Colors.grey[500]),
+              const SizedBox(width: 4),
+              Text(
+                dateStr,
+                style: poppinsStyle(
+                  fontSize: isSmallMobile ? 11 : 12,
+                  color: Colors.grey[600]!,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
