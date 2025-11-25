@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'message_module.dart' show ChatScreen;
+import 'my-postings_module.dart' show PostingsScreen;
 
 class NotificationSystemModule {
   static final NotificationSystemModule _instance = NotificationSystemModule._internal();
@@ -494,12 +496,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   color: isSelected ? const Color(0xFFD67730) : Colors.grey[200],
                   borderRadius: BorderRadius.circular(25),
                 ),
-                child: Text(
-                  filter,
-                  style: GoogleFonts.poppins(
-                    fontSize: isMobile ? 13 : 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Colors.white : Colors.grey[700],
+                child: Center(
+                  child: Text(
+                    filter,
+                    style: GoogleFonts.poppins(
+                      fontSize: isMobile ? 13 : 14,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? Colors.white : Colors.grey[700],
+                    ),
                   ),
                 ),
               ),
@@ -508,6 +512,52 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         },
       ),
     );
+  }
+
+  void _handleNotificationTap(Map<String, dynamic> notification) {
+    final type = notification['type'] ?? '';
+    final data = notification['data'] as Map<dynamic, dynamic>?;
+
+    if (!mounted) return;
+
+    switch (type) {
+      case NotificationSystemModule.typeMessageReceived:
+        // Navigate to chat screen
+        if (data != null && data['chatId'] != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(
+                chatId: data['chatId'],
+                chatName: data['senderName'] ?? 'Chat',
+                isSystemChat: false,
+              ),
+            ),
+          );
+        }
+        break;
+
+      case NotificationSystemModule.typeBorrowRequest:
+      case NotificationSystemModule.typeRequestApproved:
+      case NotificationSystemModule.typeRequestRejected:
+        // Navigate to My Postings screen (Requests tab)
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PostingsScreen(),
+          ),
+        );
+        break;
+
+      case NotificationSystemModule.typeReturnReminder:
+        // Could navigate to borrowed books or transaction history
+        // For now, just mark as read (already done in onTap)
+        break;
+
+      default:
+        // Unknown notification type, just mark as read
+        break;
+    }
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> notification, bool isSmallMobile, bool isMobile) {
@@ -572,6 +622,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (user != null && !isRead) {
             await _notificationSystem.markAsRead(user.uid, notificationId);
           }
+          
+          // Navigate based on notification type
+          _handleNotificationTap(notification);
         },
         child: Container(
           margin: EdgeInsets.only(bottom: isMobile ? 8 : 12),
