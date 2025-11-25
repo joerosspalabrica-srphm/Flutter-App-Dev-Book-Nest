@@ -6,45 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Book Posting',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF003060),
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Poppins',
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFE5E7EB), width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF003060), width: 2),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        ),
-      ),
-      home: const BookPostingForm(),
-    );
-  }
-}
-
 class FormFieldConfig {
   final String label;
   final String key;
@@ -73,19 +34,27 @@ class FormFieldConfig {
   });
 }
 
-class BookPostingForm extends StatefulWidget {
-  const BookPostingForm({Key? key}) : super(key: key);
+class EditBookPostingForm extends StatefulWidget {
+  final Map<String, dynamic> book;
+  final String bookId;
+
+  const EditBookPostingForm({
+    Key? key,
+    required this.book,
+    required this.bookId,
+  }) : super(key: key);
 
   @override
-  State<BookPostingForm> createState() => _BookPostingFormState();
+  State<EditBookPostingForm> createState() => _EditBookPostingFormState();
 }
 
-class _BookPostingFormState extends State<BookPostingForm> {
+class _EditBookPostingFormState extends State<EditBookPostingForm> {
   int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _imagePicker = ImagePicker();
   File? _bookImage;
   String? _bookImageBase64;
+  bool _imageChanged = false;
   
   // Dynamic form data storage
   final Map<String, TextEditingController> _controllers = {};
@@ -234,6 +203,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
   void initState() {
     super.initState();
     _initializeControllers();
+    _loadExistingData();
   }
 
   void _initializeControllers() {
@@ -243,6 +213,36 @@ class _BookPostingFormState extends State<BookPostingForm> {
         _controllers[field.key] = TextEditingController();
       }
     }
+  }
+
+  void _loadExistingData() {
+    // Load existing book data into controllers
+    _controllers['title']?.text = widget.book['title'] ?? '';
+    _controllers['genre']?.text = widget.book['genre'] ?? '';
+    _controllers['author']?.text = widget.book['author'] ?? '';
+    _controllers['publication']?.text = widget.book['publication'] ?? '';
+    _controllers['language']?.text = widget.book['language'] ?? '';
+    _controllers['condition']?.text = widget.book['condition'] ?? '';
+    _controllers['year']?.text = widget.book['year'] ?? '';
+    _controllers['publisher']?.text = widget.book['publisher'] ?? '';
+    _controllers['about']?.text = widget.book['about'] ?? '';
+
+    // Load penalties
+    if (widget.book['penalties'] != null) {
+      final penalties = widget.book['penalties'] as Map;
+      _controllers['late_return']?.text = (penalties['lateReturn'] ?? 0).toString();
+      _controllers['damage']?.text = (penalties['damage'] ?? 0).toString();
+      _controllers['lost']?.text = (penalties['lost'] ?? 0).toString();
+    }
+
+    // Load existing image
+    if (widget.book['imageUrl'] != null && (widget.book['imageUrl'] as String).isNotEmpty) {
+      _bookImageBase64 = widget.book['imageUrl'];
+    }
+
+    // Set initial form data
+    _formData['genre'] = widget.book['genre'];
+    _formData['condition'] = widget.book['condition'];
   }
 
   @override
@@ -281,7 +281,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please login to post books'),
+            content: Text('Please login to edit books'),
             backgroundColor: Colors.red,
           ),
         );
@@ -295,16 +295,11 @@ class _BookPostingFormState extends State<BookPostingForm> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      print('DEBUG: Starting book submission...');
       final database = FirebaseDatabase.instance;
-      print('DEBUG: Database URL: ${database.databaseURL}');
-      
-      final booksRef = database.ref('books');
-      final newBookRef = booksRef.push();
-      print('DEBUG: Generated book ID: ${newBookRef.key}');
+      final bookRef = database.ref('books/${widget.bookId}');
 
-      final bookData = {
-        'id': newBookRef.key,
+      // Prepare updated book data
+      final updatedData = {
         'title': _formData['title'] ?? '',
         'genre': _formData['genre'] ?? '',
         'author': _formData['author'] ?? '',
@@ -314,22 +309,21 @@ class _BookPostingFormState extends State<BookPostingForm> {
         'year': _formData['year'] ?? '',
         'publisher': _formData['publisher'] ?? '',
         'about': _formData['about'] ?? '',
-        'imageUrl': _bookImageBase64 ?? '',
         'penalties': {
           'lateReturn': double.tryParse(_formData['late_return'] ?? '0') ?? 0.0,
           'damage': double.tryParse(_formData['damage'] ?? '0') ?? 0.0,
           'lost': double.tryParse(_formData['lost'] ?? '0') ?? 0.0,
         },
-        'ownerId': user.uid,
-        'ownerName': user.displayName ?? 'Unknown',
-        'status': 'available',
-        'createdAt': ServerValue.timestamp,
-        'createdAtLocal': DateTime.now().toIso8601String(),
+        'updatedAt': ServerValue.timestamp,
+        'updatedAtLocal': DateTime.now().toIso8601String(),
       };
 
-      print('DEBUG: Attempting to write book data...');
-      await newBookRef.set(bookData);
-      print('DEBUG: Book data written successfully!');
+      // Only update image if it was changed
+      if (_imageChanged && _bookImageBase64 != null) {
+        updatedData['imageUrl'] = _bookImageBase64!;
+      }
+
+      await bookRef.update(updatedData);
 
       // Close loading
       if (mounted) Navigator.of(context).pop();
@@ -338,15 +332,15 @@ class _BookPostingFormState extends State<BookPostingForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Book posted successfully!'),
+            content: const Text('Book updated successfully!'),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
 
-        // Go back to homepage
-        Navigator.of(context).pop();
+        // Go back with result
+        Navigator.of(context).pop(true);
       }
       
     } catch (e) {
@@ -356,7 +350,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error posting book: $e'),
+            content: Text('Error updating book: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -372,11 +366,6 @@ class _BookPostingFormState extends State<BookPostingForm> {
     } else {
       Navigator.of(context).pop();
     }
-  }
-
-  Map<String, dynamic> getFormData() {
-    _saveCurrentStepData();
-    return Map.from(_formData);
   }
 
   @override
@@ -464,7 +453,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           SizedBox(width: isMobile ? 12 : 16),
           Expanded(
             child: Text(
-              'Add a Book for Posting',
+              'Edit Book Details',
               style: GoogleFonts.poppins(
                 fontSize: titleFontSize,
                 fontWeight: FontWeight.w600,
@@ -699,52 +688,42 @@ class _BookPostingFormState extends State<BookPostingForm> {
                       fit: BoxFit.cover,
                     ),
                   )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(iconPadding),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF003060).withOpacity(0.1),
-                          shape: BoxShape.circle,
+                : _bookImageBase64 != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.memory(
+                          base64Decode(_bookImageBase64!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildImagePlaceholder(iconPadding, iconSize, primaryTextSize, secondaryTextSize);
+                          },
                         ),
-                        child: Icon(
-                          Icons.add_photo_alternate_rounded,
-                          size: iconSize,
-                          color: Color(0xFF003060),
-                        ),
-                      ),
-                      SizedBox(height: isMobile ? 8 : 12),
-                      Text(
-                        'Tap to upload book cover',
-                        style: GoogleFonts.poppins(
-                          fontSize: primaryTextSize,
-                          color: const Color(0xFF6B7280),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'JPG, PNG (Max 5MB)',
-                        style: GoogleFonts.poppins(
-                          fontSize: secondaryTextSize,
-                          color: const Color(0xFF9CA3AF),
-                        ),
-                      ),
-                    ],
-                  ),
+                      )
+                    : _buildImagePlaceholder(iconPadding, iconSize, primaryTextSize, secondaryTextSize),
           ),
         ),
-        if (_bookImage != null) ...[
+        if (_bookImage != null || _bookImageBase64 != null) ...[
           SizedBox(height: isMobile ? 6 : 8),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              TextButton.icon(
+                onPressed: _pickImage,
+                icon: Icon(Icons.edit, size: buttonIconSize),
+                label: Text(
+                  'Change Image',
+                  style: GoogleFonts.poppins(fontSize: buttonTextSize),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF003060),
+                ),
+              ),
               TextButton.icon(
                 onPressed: () {
                   setState(() {
                     _bookImage = null;
                     _bookImageBase64 = null;
+                    _imageChanged = true;
                   });
                 },
                 icon: Icon(Icons.delete_outline, size: buttonIconSize),
@@ -759,6 +738,43 @@ class _BookPostingFormState extends State<BookPostingForm> {
             ],
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildImagePlaceholder(double iconPadding, double iconSize, double primaryTextSize, double secondaryTextSize) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: EdgeInsets.all(iconPadding),
+          decoration: BoxDecoration(
+            color: const Color(0xFF003060).withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.add_photo_alternate_rounded,
+            size: iconSize,
+            color: Color(0xFF003060),
+          ),
+        ),
+        SizedBox(height: 12),
+        Text(
+          'Tap to upload book cover',
+          style: GoogleFonts.poppins(
+            fontSize: primaryTextSize,
+            color: const Color(0xFF6B7280),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'JPG, PNG (Max 5MB)',
+          style: GoogleFonts.poppins(
+            fontSize: secondaryTextSize,
+            color: const Color(0xFF9CA3AF),
+          ),
+        ),
       ],
     );
   }
@@ -792,6 +808,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
         setState(() {
           _bookImage = imageFile;
           _bookImageBase64 = base64Encode(bytes);
+          _imageChanged = true;
         });
       }
     } catch (e) {
@@ -816,13 +833,13 @@ class _BookPostingFormState extends State<BookPostingForm> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF003060), // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: Color(0xFF003060), // Body text color
+              primary: Color(0xFF003060),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF003060),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF003060), // Button text color
+                foregroundColor: const Color(0xFF003060),
               ),
             ),
           ),
@@ -832,7 +849,6 @@ class _BookPostingFormState extends State<BookPostingForm> {
     );
 
     if (pickedDate != null) {
-      // Format date as MM/dd/yyyy
       final formattedDate = 
           '${pickedDate.month.toString().padLeft(2, '0')}/'
           '${pickedDate.day.toString().padLeft(2, '0')}/'
@@ -855,7 +871,6 @@ class _BookPostingFormState extends State<BookPostingForm> {
         _steps.length * 2 - 1,
         (index) {
           if (index.isOdd) {
-            // Connector line
             final lineIndex = index ~/ 2;
             return Container(
               width: lineWidth,
@@ -866,7 +881,6 @@ class _BookPostingFormState extends State<BookPostingForm> {
                   : const Color(0xFFE5E7EB),
             );
           } else {
-            // Step indicator
             final stepIndex = index ~/ 2;
             return _buildStepIndicator(
               stepIndex,
@@ -947,7 +961,7 @@ class _BookPostingFormState extends State<BookPostingForm> {
           ),
         ),
         child: Text(
-          _currentStep == _steps.length - 1 ? 'Submit' : 'Next',
+          _currentStep == _steps.length - 1 ? 'Update Book' : 'Next',
           style: GoogleFonts.poppins(
             fontSize: buttonFontSize,
             fontWeight: FontWeight.w600,

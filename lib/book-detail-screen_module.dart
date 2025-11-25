@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'message_module.dart' show ChatScreen;
+import 'edit-book-postings_module.dart' show EditBookPostingForm;
 
 class BookDetailScreen extends StatefulWidget {
   final Map<String, dynamic> book;
@@ -565,31 +566,72 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Favorite Icon
-                    InkWell(
-                      onTap: _toggleFavorite,
-                      child: Container(
-                        padding: EdgeInsets.all(isMobile ? 12 : 14),
-                        decoration: BoxDecoration(
-                          color: _isFavorite 
-                            ? const Color(0xFFD67730) 
-                            : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                    // Edit Icon (only for owner)
+                    if (isOwner)
+                      InkWell(
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditBookPostingForm(
+                                book: widget.book,
+                                bookId: widget.bookId,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          _isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: _isFavorite ? Colors.white : Colors.grey[600],
-                          size: isMobile ? 24 : 28,
+                          );
+                          // Refresh the screen if book was updated
+                          if (result == true && mounted) {
+                            setState(() {
+                              // Trigger rebuild to show updated data
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(isMobile ? 12 : 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF003060),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: isMobile ? 24 : 28,
+                          ),
                         ),
                       ),
-                    ),
+                    if (!isOwner)
+                      // Favorite Icon (only for non-owners)
+                      InkWell(
+                        onTap: _toggleFavorite,
+                        child: Container(
+                          padding: EdgeInsets.all(isMobile ? 12 : 14),
+                          decoration: BoxDecoration(
+                            color: _isFavorite 
+                              ? const Color(0xFFD67730) 
+                              : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            _isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: _isFavorite ? Colors.white : Colors.grey[600],
+                            size: isMobile ? 24 : 28,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
