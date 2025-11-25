@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,11 +25,17 @@ class OtherUserProfileScreen extends StatefulWidget {
 class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   String userName = 'User';
   String userBio = '';
+  String userEmail = '';
+  String userPhone = '';
   File? _avatarImage;
   double userRating = 0.0;
   int totalRatings = 0;
   List<Map<String, dynamic>> userPostings = [];
   bool isLoading = true;
+  
+  // Privacy settings
+  bool showEmail = false;
+  bool showPhone = false;
 
   TextStyle poppinsStyle({
     double fontSize = 14,
@@ -61,6 +68,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
       _loadUserAvatar(),
       _loadUserRating(),
       _loadUserPostings(),
+      _loadContactInfo(),
     ]);
 
     setState(() {
@@ -109,16 +117,56 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
     }
   }
 
-  Future<void> _loadUserAvatar() async {
+  Future<void> _loadContactInfo() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
-      final avatarFile = File('${directory.path}/avatar_${widget.userId}.png');
+      final userRef = FirebaseDatabase.instance.ref('users/${widget.userId}');
+      final snapshot = await userRef.get().timeout(const Duration(seconds: 5));
 
-      if (await avatarFile.exists()) {
+      if (snapshot.exists && snapshot.value != null) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        
+        // Load privacy settings (default to true for email, false for phone)
+        final privacy = data['privacy'] as Map<dynamic, dynamic>?;
+        final showEmailSetting = privacy?['showEmail'] ?? true; // Default ON
+        final showPhoneSetting = privacy?['showPhone'] ?? false;
+        
         if (mounted) {
           setState(() {
-            _avatarImage = avatarFile;
+            showEmail = showEmailSetting;
+            showPhone = showPhoneSetting;
+            userEmail = showEmailSetting ? (data['email']?.toString() ?? '') : '';
+            userPhone = showPhoneSetting ? (data['phone']?.toString() ?? '') : '';
           });
+        }
+      }
+    } catch (e) {
+      print('DEBUG: Error loading contact info: $e');
+    }
+  }
+
+  Future<void> _loadUserAvatar() async {
+    try {
+      // Load avatar from Firebase Database (base64)
+      final snapshot = await FirebaseDatabase.instance
+          .ref('users/${widget.userId}/avatar')
+          .get()
+          .timeout(const Duration(seconds: 5));
+      
+      if (snapshot.exists && snapshot.value != null) {
+        final avatarBase64 = snapshot.value as String;
+        if (avatarBase64.isNotEmpty) {
+          print('DEBUG: Found avatar in Firebase Database for user ${widget.userId}');
+          // Decode base64 and create temporary file
+          final bytes = base64Decode(avatarBase64);
+          final tempDir = await getApplicationDocumentsDirectory();
+          final avatarFile = File('${tempDir.path}/avatar_${widget.userId}.png');
+          await avatarFile.writeAsBytes(bytes);
+          
+          if (mounted) {
+            setState(() {
+              _avatarImage = avatarFile;
+            });
+          }
         }
       }
     } catch (e) {
@@ -296,14 +344,77 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                 ),
               ),
 
+              // Contact Info
+              if (showEmail || showPhone) ...[
+                SizedBox(height: isSmallMobile ? 12 : 16),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: isSmallMobile ? 24 : 32),
+                  child: Column(
+                    children: [
+                      if (showEmail && userEmail.isNotEmpty)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.email_outlined,
+                              size: isSmallMobile ? 16 : 18,
+                              color: const Color(0xFF003060),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                userEmail,
+                                style: poppinsStyle(
+                                  fontSize: isSmallMobile ? 12 : 13,
+                                  color: Colors.grey[700]!,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (showPhone && userPhone.isNotEmpty) ...[
+                        if (showEmail && userEmail.isNotEmpty)
+                          const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.phone_outlined,
+                              size: isSmallMobile ? 16 : 18,
+                              color: const Color(0xFF003060),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              userPhone,
+                              style: poppinsStyle(
+                                fontSize: isSmallMobile ? 12 : 13,
+                                color: Colors.grey[700]!,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+
               SizedBox(height: isSmallMobile ? 16 : 20),
 
               // Rating Section
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallMobile ? 16 : 20,
+                  vertical: isSmallMobile ? 10 : 12,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFD67730),
+                    width: 2,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -311,22 +422,23 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                     const Icon(
                       Icons.star,
                       color: Color(0xFFD67730),
-                      size: 24,
+                      size: 28,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       userRating.toStringAsFixed(1),
                       style: poppinsStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: isSmallMobile ? 20 : 22,
+                        fontWeight: FontWeight.bold,
                         color: const Color(0xFF003060),
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 6),
                     Text(
                       '($totalRatings)',
                       style: poppinsStyle(
-                        fontSize: 14,
+                        fontSize: isSmallMobile ? 13 : 14,
+                        fontWeight: FontWeight.w500,
                         color: Colors.grey[600]!,
                       ),
                     ),
@@ -334,45 +446,66 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                 ),
               ),
 
-              SizedBox(height: isSmallMobile ? 24 : 32),
+              SizedBox(height: isSmallMobile ? 28 : 32),
 
-              // Postings Section
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Posted Books',
-                  style: poppinsStyle(
-                    fontSize: isSmallMobile ? 18 : 20,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF003060),
-                  ),
+              // Posted Books Section
+              Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(maxWidth: 500),
+                padding: EdgeInsets.all(isSmallMobile ? 16 : 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.book_outlined,
+                          color: Color(0xFF003060),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Posted Books',
+                          style: poppinsStyle(
+                            fontSize: isSmallMobile ? 18 : 20,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF003060),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Postings List
+                    if (userPostings.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: Text(
+                            'No posts yet',
+                            style: poppinsStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600]!,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: userPostings.length,
+                        itemBuilder: (context, index) {
+                          final post = userPostings[index];
+                          return _buildPostingCard(post, isSmallMobile, isMobile);
+                        },
+                      ),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 16),
-
-              // Postings List
-              if (userPostings.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Text(
-                    'No posts yet',
-                    style: poppinsStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600]!,
-                    ),
-                  ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: userPostings.length,
-                  itemBuilder: (context, index) {
-                    final post = userPostings[index];
-                    return _buildPostingCard(post, isSmallMobile, isMobile);
-                  },
-                ),
             ],
           ),
         ),
@@ -408,16 +541,15 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: EdgeInsets.all(isSmallMobile ? 12 : 16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(isSmallMobile ? 14 : 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 4,
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
               offset: const Offset(0, 2),
             ),
           ],
