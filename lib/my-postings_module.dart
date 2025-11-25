@@ -56,6 +56,11 @@ class _PostingsScreenState extends State<PostingsScreen> {
     _loadBorrowRequests();
   }
 
+  Future<void> _refreshData() async {
+    await _loadMyPostings();
+    await _loadBorrowRequests();
+  }
+
   Future<void> _loadMyPostings() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -523,14 +528,20 @@ class _PostingsScreenState extends State<PostingsScreen> {
             // Content Area - Books Grid or Requests List
             Expanded(
               child: _isLoading
-                  ? Center(
-                      child: SizedBox(
-                        width: isSmallMobile ? 36.0 : (isMobile ? 40.0 : 48.0),
-                        height: isSmallMobile ? 36.0 : (isMobile ? 40.0 : 48.0),
-                        child: CircularProgressIndicator(
-                          color: Color(0xFFD67730),
-                          strokeWidth: isSmallMobile ? 3.0 : (isMobile ? 3.5 : 4.0),
+                  ? Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                        vertical: spacing,
+                      ),
+                      child: GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4)),
+                          childAspectRatio: isSmallMobile ? 0.60 : (isMobile ? 0.65 : 0.70),
+                          crossAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
+                          mainAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
                         ),
+                        itemCount: 6,
+                        itemBuilder: (context, index) => _buildBookCardSkeleton(isSmallMobile, isMobile),
                       ),
                     )
                   : _selectedTabIndex == 0
@@ -545,91 +556,112 @@ class _PostingsScreenState extends State<PostingsScreen> {
 
   Widget _buildBooksGrid(bool isSmallMobile, bool isMobile, bool isTablet, double horizontalPadding, double spacing) {
     if (filteredBooks.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.library_books_outlined,
-                size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
-                color: Colors.grey[400],
-              ),
-              SizedBox(height: spacing),
-              Text(
-                selectedCategory == 'All'
-                    ? 'You have no postings'
-                    : 'No books in $selectedCategory',
-                style: GoogleFonts.poppins(
-                  fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+      return RefreshIndicator(
+        onRefresh: _refreshData,
+        color: const Color(0xFFD67730),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: 400,
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.library_books_outlined,
+                      size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
+                      color: Colors.grey[400],
+                    ),
+                    SizedBox(height: spacing),
+                    Text(
+                      selectedCategory == 'All'
+                          ? 'You have no postings'
+                          : 'No books in $selectedCategory',
+                      style: GoogleFonts.poppins(
+                        fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: spacing * 0.5),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallMobile ? 24.0 : (isMobile ? 36.0 : 48.0),
+                      ),
+                      child: Text(
+                        selectedCategory == 'All'
+                            ? 'Start posting books to share with others'
+                            : 'You haven\'t posted any books in this category yet',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
+                          color: Colors.grey[600],
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
-              SizedBox(height: spacing * 0.5),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSmallMobile ? 24.0 : (isMobile ? 36.0 : 48.0),
-                ),
-                child: Text(
-                  selectedCategory == 'All'
-                      ? 'Start posting books to share with others'
-                      : 'You haven\'t posted any books in this category yet',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: isSmallMobile ? 13.0 : (isMobile ? 13.5 : 14.0),
-                    color: Colors.grey[600],
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
     }
 
-    return Padding(
-      padding: EdgeInsets.symmetric(
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      color: const Color(0xFFD67730),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
         horizontal: horizontalPadding,
         vertical: spacing,
       ),
-      child: GridView.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4)),
-          childAspectRatio: isSmallMobile ? 0.60 : (isMobile ? 0.65 : 0.70),
-          crossAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
-          mainAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
+        child: GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4)),
+            childAspectRatio: isSmallMobile ? 0.60 : (isMobile ? 0.65 : 0.70),
+            crossAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
+            mainAxisSpacing: isSmallMobile ? 12.0 : (isMobile ? 14.0 : 16.0),
+          ),
+          itemCount: filteredBooks.length,
+          itemBuilder: (context, index) {
+            return _buildBookCard(filteredBooks[index], isSmallMobile, isMobile);
+          },
         ),
-        itemCount: filteredBooks.length,
-        itemBuilder: (context, index) {
-          return _buildBookCard(filteredBooks[index], isSmallMobile, isMobile);
-        },
       ),
     );
   }
 
   Widget _buildRequestsList(bool isSmallMobile, bool isMobile, bool isTablet, double horizontalPadding, double spacing) {
     if (_borrowRequests.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.inbox_outlined,
-                size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
-                color: Colors.grey[400],
-              ),
-              SizedBox(height: spacing),
-              Text(
-                'No borrow requests',
-                style: GoogleFonts.poppins(
-                  fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
-                  fontWeight: FontWeight.w600,
+      return RefreshIndicator(
+        onRefresh: _refreshData,
+        color: const Color(0xFFD67730),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: 400,
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inbox_outlined,
+                      size: isSmallMobile ? 64.0 : (isMobile ? 72.0 : 80.0),
+                      color: Colors.grey[400],
+                    ),
+                    SizedBox(height: spacing),
+                    Text(
+                      'No borrow requests',
+                      style: GoogleFonts.poppins(
+                        fontSize: isSmallMobile ? 18.0 : (isMobile ? 19.0 : 20.0),
+                        fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
                 ),
                 textAlign: TextAlign.center,
@@ -652,18 +684,25 @@ class _PostingsScreenState extends State<PostingsScreen> {
             ],
           ),
         ),
+      ),
+        ),
+      ),
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: spacing,
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      color: const Color(0xFFD67730),
+      child: ListView.builder(
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: spacing,
+        ),
+        itemCount: _borrowRequests.length,
+        itemBuilder: (context, index) {
+          return _buildRequestCard(_borrowRequests[index], isSmallMobile, isMobile);
+        },
       ),
-      itemCount: _borrowRequests.length,
-      itemBuilder: (context, index) {
-        return _buildRequestCard(_borrowRequests[index], isSmallMobile, isMobile);
-      },
     );
   }
 
@@ -801,8 +840,56 @@ class _PostingsScreenState extends State<PostingsScreen> {
                 SizedBox(width: isMobile ? 12 : 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      _updateRequestStatus(request['id'], 'rejected');
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          icon: const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.red,
+                            size: 48,
+                          ),
+                          title: Text(
+                            'Decline Request',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF003060),
+                            ),
+                          ),
+                          content: Text(
+                            'Are you sure you want to decline this borrow request from ${request['requesterName']}?',
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text(
+                                'Cancel',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text(
+                                'Decline',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed == true) {
+                        _updateRequestStatus(request['id'], 'rejected');
+                      }
                     },
                     icon: const Icon(Icons.close, size: 20),
                     label: Text(
@@ -1183,6 +1270,83 @@ class _PostingsScreenState extends State<PostingsScreen> {
       // Update status (borrowed, reserved, or available)
       await _updateBookStatus(bookId, action);
     }
+  }
+
+  Widget _buildBookCardSkeleton(bool isSmallMobile, bool isMobile) {
+    final coverHeight = isSmallMobile ? 120.0 : (isMobile ? 130.0 : 140.0);
+    final cardPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: coverHeight,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.image_outlined,
+                size: isSmallMobile ? 48.0 : 60.0,
+                color: Colors.grey[400],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(cardPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: isSmallMobile ? 14.0 : 16.0,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: isSmallMobile ? 10.0 : 12.0,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    height: isSmallMobile ? 18.0 : 20.0,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _deleteBook(String bookId) async {

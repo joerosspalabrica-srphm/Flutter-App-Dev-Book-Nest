@@ -68,6 +68,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     _loadUnreadCount();
   }
 
+  Future<void> _refreshFavorites() async {
+    _loadFavorites();
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
   void _loadFavorites() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -252,37 +257,60 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
   }
 
   Widget _buildContent(bool isSmallMobile, bool isMobile, bool isTablet) {
-    if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(
-          color: const Color(0xFFD67730),
-          strokeWidth: isSmallMobile ? 3 : 4,
-        ),
-      );
-    }
-    
-    if (filteredFavorites.isEmpty) {
-      return _buildEmptyState(isSmallMobile, isMobile);
-    }
-    
     // Responsive grid settings
     final gridPadding = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
     final gridCrossAxisCount = isSmallMobile ? 2 : (isMobile ? 2 : (isTablet ? 3 : 4));
     final gridChildAspectRatio = isSmallMobile ? 0.60 : (isMobile ? 0.65 : (isTablet ? 0.70 : 0.75));
     final gridSpacing = isSmallMobile ? 12.0 : (isMobile ? 16.0 : 20.0);
     
-    return GridView.builder(
-      padding: EdgeInsets.all(gridPadding),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: gridCrossAxisCount,
-        childAspectRatio: gridChildAspectRatio,
-        crossAxisSpacing: gridSpacing,
-        mainAxisSpacing: gridSpacing,
+    if (_isLoading) {
+      return RefreshIndicator(
+        onRefresh: _refreshFavorites,
+        color: const Color(0xFFD67730),
+        child: GridView.builder(
+          padding: EdgeInsets.all(gridPadding),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: gridCrossAxisCount,
+            childAspectRatio: gridChildAspectRatio,
+            crossAxisSpacing: gridSpacing,
+            mainAxisSpacing: gridSpacing,
+          ),
+          itemCount: 6,
+          itemBuilder: (context, index) => _buildBookCardSkeleton(isSmallMobile, isMobile),
+        ),
+      );
+    }
+    
+    if (filteredFavorites.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _refreshFavorites,
+        color: const Color(0xFFD67730),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height - 200,
+            child: _buildEmptyState(isSmallMobile, isMobile),
+          ),
+        ),
+      );
+    }
+    
+    return RefreshIndicator(
+      onRefresh: _refreshFavorites,
+      color: const Color(0xFFD67730),
+      child: GridView.builder(
+        padding: EdgeInsets.all(gridPadding),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: gridCrossAxisCount,
+          childAspectRatio: gridChildAspectRatio,
+          crossAxisSpacing: gridSpacing,
+          mainAxisSpacing: gridSpacing,
+        ),
+        itemCount: filteredFavorites.length,
+        itemBuilder: (context, index) {
+          return _buildBookCard(filteredFavorites[index], isSmallMobile, isMobile);
+        },
       ),
-      itemCount: filteredFavorites.length,
-      itemBuilder: (context, index) {
-        return _buildBookCard(filteredFavorites[index], isSmallMobile, isMobile);
-      },
     );
   }
 
@@ -495,6 +523,83 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     );
   }
   
+  Widget _buildBookCardSkeleton(bool isSmallMobile, bool isMobile) {
+    final coverHeight = isSmallMobile ? 120.0 : (isMobile ? 130.0 : 140.0);
+    final cardPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: coverHeight,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.image_outlined,
+                size: isSmallMobile ? 48.0 : 60.0,
+                color: Colors.grey[400],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(cardPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: isSmallMobile ? 14.0 : 16.0,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: isSmallMobile ? 10.0 : 12.0,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    height: isSmallMobile ? 18.0 : 20.0,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAnimatedIconWithBadge(IconData outlinedIcon, IconData filledIcon, int index, int badgeCount) {
     final size = MediaQuery.of(context).size;
     final width = size.width;

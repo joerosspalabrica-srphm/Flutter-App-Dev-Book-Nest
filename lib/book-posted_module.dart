@@ -14,6 +14,12 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
   final TextEditingController searchController = TextEditingController();
   String searchQuery = '';
   String selectedCategory = 'All';
+  
+  // Advanced filters
+  String selectedCondition = 'All';
+  String selectedLanguage = 'All';
+  String selectedSort = 'Newest';
+  bool showFilters = false;
 
   final List<String> categories = [
     'All',
@@ -22,6 +28,10 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
     'Non - Fiction',
     'Mystery',
   ];
+  
+  final List<String> conditions = ['All', 'Brand New', 'Good as New', 'Old (Used)'];
+  final List<String> languages = ['All', 'English', 'Filipino', 'Spanish', 'Chinese', 'Japanese', 'Korean', 'Other'];
+  final List<String> sortOptions = ['Newest', 'Oldest', 'Title A-Z', 'Title Z-A'];
 
   TextStyle poppinsStyle({
     double fontSize = 14,
@@ -41,6 +51,13 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshBooks() async {
+    if (mounted) {
+      setState(() {});
+    }
+    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override
@@ -68,22 +85,13 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
             // Header
             _buildHeader(isMobile, horizontalPadding),
 
-            SizedBox(height: isMobile ? 24 : 32),
-
-            // Search Bar
+            SizedBox(height: isMobile ? 20 : 24),
+            
+            // Search Bar with Filter Button
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Row(
                 children: [
-                  Text(
-                    'Posted Books',
-                    style: poppinsStyle(
-                      fontSize: isSmallMobile ? 22 : (isMobile ? 28 : (isTablet ? 32 : 36)),
-                      color: const Color(0xFF003060),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(width: isMobile ? 16 : 20),
                   Expanded(
                     child: Container(
                       height: isMobile ? 48 : 52,
@@ -99,7 +107,7 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                           });
                         },
                         decoration: InputDecoration(
-                          hintText: 'Search books',
+                          hintText: 'Search by title or author',
                           hintStyle: poppinsStyle(
                             color: Colors.grey,
                           ),
@@ -116,9 +124,216 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                       ),
                     ),
                   ),
+                  SizedBox(width: isMobile ? 8 : 12),
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        showFilters = !showFilters;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: isMobile ? 48 : 52,
+                      width: isMobile ? 48 : 52,
+                      decoration: BoxDecoration(
+                        color: showFilters ? const Color(0xFFD67730) : const Color(0xFF003060),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.tune,
+                        color: Colors.white,
+                        size: isMobile ? 24 : 28,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
+            
+            // Advanced Filters Panel
+            if (showFilters) ...[
+              SizedBox(height: isMobile ? 16 : 20),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: Container(
+                  padding: EdgeInsets.all(isMobile ? 16 : 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Sort By
+                      Text(
+                        'Sort By',
+                        style: poppinsStyle(
+                          fontSize: isMobile ? 14 : 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF003060),
+                        ),
+                      ),
+                      SizedBox(height: isMobile ? 8 : 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: sortOptions.map((sort) {
+                          final isSelected = selectedSort == sort;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedSort = sort;
+                              });
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isMobile ? 12 : 16,
+                                vertical: isMobile ? 6 : 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFFD67730) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFFD67730) : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                sort,
+                                style: poppinsStyle(
+                                  fontSize: isMobile ? 13 : 14,
+                                  color: isSelected ? Colors.white : const Color(0xFF003060),
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: isMobile ? 16 : 20),
+                      // Condition Filter
+                      Text(
+                        'Condition',
+                        style: poppinsStyle(
+                          fontSize: isMobile ? 14 : 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF003060),
+                        ),
+                      ),
+                      SizedBox(height: isMobile ? 8 : 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: conditions.map((condition) {
+                          final isSelected = selectedCondition == condition;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedCondition = condition;
+                              });
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isMobile ? 12 : 16,
+                                vertical: isMobile ? 6 : 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF003060) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF003060) : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                condition,
+                                style: poppinsStyle(
+                                  fontSize: isMobile ? 13 : 14,
+                                  color: isSelected ? Colors.white : const Color(0xFF003060),
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: isMobile ? 16 : 20),
+                      // Language Filter
+                      Text(
+                        'Language',
+                        style: poppinsStyle(
+                          fontSize: isMobile ? 14 : 16,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF003060),
+                        ),
+                      ),
+                      SizedBox(height: isMobile ? 8 : 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: languages.map((language) {
+                          final isSelected = selectedLanguage == language;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedLanguage = language;
+                              });
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isMobile ? 12 : 16,
+                                vertical: isMobile ? 6 : 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF003060) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF003060) : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Text(
+                                language,
+                                style: poppinsStyle(
+                                  fontSize: isMobile ? 13 : 14,
+                                  color: isSelected ? Colors.white : const Color(0xFF003060),
+                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: isMobile ? 16 : 20),
+                      // Reset Filters Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () {
+                            setState(() {
+                              selectedCondition = 'All';
+                              selectedLanguage = 'All';
+                              selectedSort = 'Newest';
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.grey[300],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Reset Filters',
+                            style: poppinsStyle(
+                              fontSize: isMobile ? 14 : 16,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF003060),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
 
             SizedBox(height: isMobile ? 20 : 24),
 
@@ -181,14 +396,17 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
 
             // Books Grid
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: StreamBuilder<DatabaseEvent>(
-                  stream: FirebaseDatabase.instance
-                      .ref('books')
-                      .orderByChild('createdAt')
-                      .onValue,
-                  builder: (context, snapshot) {
+              child: RefreshIndicator(
+                onRefresh: _refreshBooks,
+                color: const Color(0xFFD67730),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: StreamBuilder<DatabaseEvent>(
+                    stream: FirebaseDatabase.instance
+                        .ref('books')
+                        .orderByChild('createdAt')
+                        .onValue,
+                    builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
                         child: Text(
@@ -199,7 +417,16 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                     }
 
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: gridCrossAxisCount,
+                          childAspectRatio: gridChildAspectRatio,
+                          crossAxisSpacing: isMobile ? 16 : 20,
+                          mainAxisSpacing: isMobile ? 16 : 20,
+                        ),
+                        itemCount: 6,
+                        itemBuilder: (context, index) => _buildBookCardSkeleton(isSmallMobile, isMobile),
+                      );
                     }
 
                     final event = snapshot.data;
@@ -235,12 +462,28 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                     // Filter by category and search
                     final filteredBooks = books.where((book) {
                       final title = (book['title'] ?? '').toString().toLowerCase();
+                      final author = (book['author'] ?? '').toString().toLowerCase();
                       final genre = (book['genre'] ?? '').toString();
+                      final condition = (book['condition'] ?? '').toString();
+                      final language = (book['language'] ?? '').toString();
 
-                      // Filter by search query
-                      if (searchQuery.isNotEmpty && 
-                          !title.contains(searchQuery.toLowerCase())) {
-                        return false;
+                      // Debug: Print book data when searching
+                      if (searchQuery.isNotEmpty && books.indexOf(book) == 0) {
+                        print('DEBUG Search - Query: "$searchQuery"');
+                        print('DEBUG Search - Sample Book Title: "${book['title']}"');
+                        print('DEBUG Search - Sample Book Author: "${book['author']}"');
+                        print('DEBUG Search - Author field exists: ${book.containsKey('author')}');
+                      }
+
+                      // Search by title or author
+                      if (searchQuery.isNotEmpty) {
+                        final query = searchQuery.toLowerCase();
+                        final titleMatch = title.contains(query);
+                        final authorMatch = author.contains(query);
+                        
+                        if (!titleMatch && !authorMatch) {
+                          return false;
+                        }
                       }
                       
                       // Filter by category
@@ -248,8 +491,45 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                         return false;
                       }
                       
+                      // Filter by condition
+                      if (selectedCondition != 'All' && condition != selectedCondition) {
+                        return false;
+                      }
+                      
+                      // Filter by language
+                      if (selectedLanguage != 'All' && language != selectedLanguage) {
+                        return false;
+                      }
+                      
                       return true;
                     }).toList();
+                    
+                    // Apply sorting
+                    if (selectedSort == 'Newest') {
+                      filteredBooks.sort((a, b) {
+                        final aTime = a['createdAt'] ?? 0;
+                        final bTime = b['createdAt'] ?? 0;
+                        return bTime.compareTo(aTime);
+                      });
+                    } else if (selectedSort == 'Oldest') {
+                      filteredBooks.sort((a, b) {
+                        final aTime = a['createdAt'] ?? 0;
+                        final bTime = b['createdAt'] ?? 0;
+                        return aTime.compareTo(bTime);
+                      });
+                    } else if (selectedSort == 'Title A-Z') {
+                      filteredBooks.sort((a, b) {
+                        final aTitle = (a['title'] ?? '').toString().toLowerCase();
+                        final bTitle = (b['title'] ?? '').toString().toLowerCase();
+                        return aTitle.compareTo(bTitle);
+                      });
+                    } else if (selectedSort == 'Title Z-A') {
+                      filteredBooks.sort((a, b) {
+                        final aTitle = (a['title'] ?? '').toString().toLowerCase();
+                        final bTitle = (b['title'] ?? '').toString().toLowerCase();
+                        return bTitle.compareTo(aTitle);
+                      });
+                    }
 
                     if (filteredBooks.isEmpty) {
                       return Center(
@@ -303,8 +583,86 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
                 ),
               ),
             ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBookCardSkeleton(bool isSmallMobile, bool isMobile) {
+    final coverHeight = isSmallMobile ? 120.0 : (isMobile ? 130.0 : 140.0);
+    final cardPadding = isSmallMobile ? 10.0 : (isMobile ? 11.0 : 12.0);
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: coverHeight,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.image_outlined,
+                size: isSmallMobile ? 48.0 : 60.0,
+                color: Colors.grey[400],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(cardPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: isSmallMobile ? 14.0 : 16.0,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: isSmallMobile ? 10.0 : 12.0,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    height: isSmallMobile ? 18.0 : 20.0,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
