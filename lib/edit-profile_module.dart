@@ -15,16 +15,19 @@ class ProfileLoginScreen extends StatefulWidget {
 
 class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTickerProviderStateMixin {
   final TextEditingController usernameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
   final TextEditingController currentPasswordController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _isEditMode = false; // Track edit mode
   bool _obscureCurrentPassword = true;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   
   // For reset functionality
   String _originalName = '';
+  String _originalPhone = '';
   
   // Password validation states
   String _passwordStrength = '';
@@ -131,7 +134,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      // Load username from Realtime Database
+      // Load username and phone from Realtime Database
       try {
         final snapshot = await FirebaseDatabase.instance
             .ref('users/${user.uid}')
@@ -141,12 +144,16 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
           final data = snapshot.snapshot.value as Map?;
           setState(() {
             usernameController.text = data?['username'] ?? data?['name'] ?? user.displayName ?? '';
+            phoneController.text = data?['phone'] ?? '';
             _originalName = usernameController.text;
+            _originalPhone = phoneController.text;
           });
         } else {
           setState(() {
             usernameController.text = user.displayName ?? '';
+            phoneController.text = '';
             _originalName = usernameController.text;
+            _originalPhone = '';
           });
         }
       } catch (e) {
@@ -200,25 +207,31 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   void _resetChanges() {
     setState(() {
       usernameController.text = _originalName;
+      phoneController.text = _originalPhone;
       currentPasswordController.text = '';
       passwordController.text = '';
       confirmPasswordController.text = '';
       _passwordStrength = '';
       _passwordsMatch = true;
       _showPasswordRequirements = false;
+      _isEditMode = false;
     });
-    _showSnackBar('Changes reset', isError: false);
+    _showSnackBar('Changes cancelled', isError: false);
   }
 
   Future<void> _onDonePressed() async {
     // Check if any changes were made
     final nameChanged = usernameController.text.trim() != _originalName;
+    final phoneChanged = phoneController.text.trim() != _originalPhone;
     final passwordChangeRequested = passwordController.text.isNotEmpty || 
                                     confirmPasswordController.text.isNotEmpty ||
                                     currentPasswordController.text.isNotEmpty;
     
-    if (!nameChanged && !passwordChangeRequested) {
+    if (!nameChanged && !phoneChanged && !passwordChangeRequested) {
       _showSnackBar('No changes to save', isError: false);
+      setState(() {
+        _isEditMode = false;
+      });
       return;
     }
     
@@ -231,6 +244,15 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
       
       if (usernameController.text.trim().length > _nameMaxLength) {
         _showSnackBar('Name is too long (max $_nameMaxLength characters)', isError: true);
+        return;
+      }
+    }
+    
+    // Validate phone number if provided (optional field)
+    if (phoneController.text.trim().isNotEmpty) {
+      final phoneRegex = RegExp(r'^[0-9]{10,15}$');
+      if (!phoneRegex.hasMatch(phoneController.text.trim())) {
+        _showSnackBar('Please enter a valid phone number (10-15 digits)', isError: true);
         return;
       }
     }
@@ -316,12 +338,17 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
         }
       }
 
-      // Update Realtime Database if name changed
-      if (nameChanged) {
-        final updates = {
-          'username': usernameController.text.trim(),
-          'name': usernameController.text.trim(),
-        };
+      // Update Realtime Database if name or phone changed
+      if (nameChanged || phoneController.text.trim().isNotEmpty) {
+        final updates = <String, dynamic>{};
+        
+        if (nameChanged) {
+          updates['username'] = usernameController.text.trim();
+          updates['name'] = usernameController.text.trim();
+        }
+        
+        // Always update phone (even if empty, to allow removal)
+        updates['phone'] = phoneController.text.trim();
         
         if (avatarBase64 != null) {
           updates['avatar'] = avatarBase64;
@@ -357,11 +384,17 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
       
       _showSnackBar(successMessage, isError: false);
 
-      // Navigate back after animation
-      await Future.delayed(const Duration(milliseconds: 1500));
-      if (mounted) {
-        Navigator.pop(context, true); // Return true to indicate success
-      }
+      // Update original values and exit edit mode
+      setState(() {
+        _originalName = usernameController.text.trim();
+        _originalPhone = phoneController.text.trim();
+        _isEditMode = false;
+        currentPasswordController.clear();
+        passwordController.clear();
+        confirmPasswordController.clear();
+        _passwordStrength = '';
+        _passwordsMatch = true;
+      });
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'Update failed';
       
@@ -454,6 +487,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
   @override
   void dispose() {
     usernameController.dispose();
+    phoneController.dispose();
     currentPasswordController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
@@ -591,6 +625,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                             ),
                             TextField(
                               controller: usernameController,
+                              readOnly: !_isEditMode,
                               maxLength: _nameMaxLength,
                               decoration: InputDecoration(
                                 hintText: 'Enter your name',
@@ -608,6 +643,50 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                                   borderSide: BorderSide(color: Color(0xFF003366), width: 2),
                                 ),
                                 counterText: '', // Hide default counter
+                              ),
+                              style: GoogleFonts.poppins(
+                                fontSize: hintFontSize,
+                                color: Colors.black,
+                              ),
+                            ),
+                            
+                            SizedBox(height: fieldSpacing),
+                            
+                            // Phone Number Field
+                            Text(
+                              'Phone Number:',
+                              style: GoogleFonts.poppins(
+                                fontSize: labelFontSize,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black,
+                              ),
+                            ),
+                            TextField(
+                              controller: phoneController,
+                              readOnly: !_isEditMode,
+                              keyboardType: TextInputType.phone,
+                              maxLength: 15,
+                              decoration: InputDecoration(
+                                hintText: 'Enter phone number (optional)',
+                                hintStyle: GoogleFonts.poppins(
+                                  color: Colors.grey,
+                                  fontSize: hintFontSize,
+                                ),
+                                border: const UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Color(0xFFCCCCCC)),
+                                ),
+                                enabledBorder: const UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Color(0xFFCCCCCC)),
+                                ),
+                                focusedBorder: const UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Color(0xFF003366), width: 2),
+                                ),
+                                counterText: '',
+                                prefixIcon: Icon(
+                                  Icons.phone,
+                                  color: Colors.grey,
+                                  size: iconSize,
+                                ),
                               ),
                               style: GoogleFonts.poppins(
                                 fontSize: hintFontSize,
@@ -642,6 +721,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ),
                   TextField(
                     controller: currentPasswordController,
+                    readOnly: !_isEditMode,
                     obscureText: _obscureCurrentPassword,
                     decoration: InputDecoration(
                       hintText: 'Enter current password',
@@ -737,6 +817,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                     },
                     child: TextField(
                       controller: passwordController,
+                      readOnly: !_isEditMode,
                       obscureText: _obscurePassword,
                       onChanged: (value) {
                         _calculatePasswordStrength(value);
@@ -831,6 +912,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   ),
                   TextField(
                     controller: confirmPasswordController,
+                    readOnly: !_isEditMode,
                     obscureText: _obscureConfirmPassword,
                     onChanged: (value) => _checkPasswordsMatch(),
                     decoration: InputDecoration(
@@ -904,25 +986,26 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
             ),
             
             SizedBox(height: isMobile ? 20 : 30),
-            
-            // Reset Button
-            Center(
-              child: TextButton.icon(
-                onPressed: _isLoading ? null : _resetChanges,
-                icon: Icon(Icons.refresh, color: const Color(0xFF003060), size: iconSize),
-                label: Text(
-                  'Reset Changes',
-                  style: GoogleFonts.poppins(
-                    fontSize: resetFontSize,
-                    color: const Color(0xFF003060),
+            // Reset Button (only show in edit mode)
+            if (_isEditMode)
+              Center(
+                child: TextButton.icon(
+                  onPressed: _isLoading ? null : _resetChanges,
+                  icon: Icon(Icons.refresh, color: const Color(0xFF003060), size: iconSize),
+                  label: Text(
+                    'Reset Changes',
+                    style: GoogleFonts.poppins(
+                      fontSize: resetFontSize,
+                      color: const Color(0xFF003060),
+                    ),
                   ),
                 ),
               ),
-            ),
             
-            SizedBox(height: isMobile ? 10 : 15),
+            if (_isEditMode)
+              SizedBox(height: isMobile ? 10 : 15),
             
-            // Action Buttons Row (Cancel left, Done right - platform convention)
+            // Action Buttons
             Center(
               child: Container(
                 constraints: BoxConstraints(
@@ -932,13 +1015,42 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   horizontal: cardMarginH,
                   vertical: isMobile ? 0 : 10,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Cancel Button (Secondary action - outlined, left position)
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isLoading ? null : () => Navigator.pop(context),
+                child: !_isEditMode
+                    ? // Edit Button
+                    ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _isEditMode = true;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF003060),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 0,
+                            vertical: buttonPaddingV,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 3,
+                        ),
+                        child: Text(
+                          'Edit',
+                          style: GoogleFonts.poppins(
+                            fontSize: buttonFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : // Cancel and Save buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Cancel Button
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _isLoading ? null : _resetChanges,
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFF003060), width: 1.5),
                           padding: EdgeInsets.symmetric(
