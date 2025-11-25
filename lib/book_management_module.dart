@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
 import 'book-detail-screen_module.dart' show BookDetailScreen;
+import 'error_handler_module.dart';
 
 class BookManagementScreen extends StatefulWidget {
   const BookManagementScreen({Key? key}) : super(key: key);
@@ -83,8 +84,19 @@ class _BookManagementScreenState extends State<BookManagementScreen> {
   }
 
   Future<void> _refreshBooks() async {
-    setState(() => _isLoading = true);
-    await _loadMyBooks();
+    try {
+      setState(() => _isLoading = true);
+      await _loadMyBooks();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ErrorHandler.showErrorSnackBar(
+          context: context,
+          message: 'Failed to refresh books',
+          onRetry: _refreshBooks,
+        );
+      }
+    }
   }
 
   List<Map<String, dynamic>> get _filteredBooks {
@@ -201,14 +213,11 @@ class _BookManagementScreenState extends State<BookManagementScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Failed to delete books: $e',
-                style: GoogleFonts.poppins(),
-              ),
-              backgroundColor: Colors.red,
-            ),
+          ErrorHandler.showFirebaseError(
+            context: context,
+            operation: 'delete books',
+            error: e,
+            onRetry: _deleteSelectedBooks,
           );
         }
       }

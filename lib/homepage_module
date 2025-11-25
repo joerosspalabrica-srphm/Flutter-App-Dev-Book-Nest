@@ -13,6 +13,7 @@ import 'chat_module.dart' show ChatsScreen;
 import 'favorite_module.dart' show FavoritesScreen;
 import 'profile_module.dart' show ProfileScreen;
 import 'notification_system_module.dart';
+import 'error_handler_module.dart';
 
 // Note: main() is in main.dart, not here
 // This module provides the HomeScreen UI
@@ -217,12 +218,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _refreshBooks() async {
-    // Trigger a rebuild by calling setState
-    if (mounted) {
-      setState(() {});
+    try {
+      // Trigger a rebuild by calling setState
+      if (mounted) {
+        setState(() {});
+      }
+      // Add a small delay to show the refresh indicator
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showErrorSnackBar(
+          context: context,
+          message: 'Failed to refresh books',
+          onRetry: _refreshBooks,
+        );
+      }
     }
-    // Add a small delay to show the refresh indicator
-    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override

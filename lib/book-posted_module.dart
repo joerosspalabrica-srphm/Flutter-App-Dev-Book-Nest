@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
+import 'error_handler_module.dart';
 
 class BookPostedScreen extends StatefulWidget {
   const BookPostedScreen({Key? key}) : super(key: key);
@@ -54,10 +55,20 @@ class _BookPostedScreenState extends State<BookPostedScreen> {
   }
 
   Future<void> _refreshBooks() async {
-    if (mounted) {
-      setState(() {});
+    try {
+      if (mounted) {
+        setState(() {});
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showErrorSnackBar(
+          context: context,
+          message: 'Failed to refresh books',
+          onRetry: _refreshBooks,
+        );
+      }
     }
-    await Future.delayed(const Duration(milliseconds: 500));
   }
 
   @override

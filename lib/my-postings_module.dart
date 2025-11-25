@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'book-detail-screen_module.dart' show BookDetailScreen;
 import 'notification_system_module.dart';
 import 'book_management_module.dart' show BookManagementScreen;
+import 'error_handler_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -59,8 +60,18 @@ class _PostingsScreenState extends State<PostingsScreen> {
   }
 
   Future<void> _refreshData() async {
-    await _loadMyPostings();
-    await _loadBorrowRequests();
+    try {
+      await _loadMyPostings();
+      await _loadBorrowRequests();
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showErrorSnackBar(
+          context: context,
+          message: 'Failed to refresh data',
+          onRetry: _refreshData,
+        );
+      }
+    }
   }
 
   Future<void> _loadMyPostings() async {
@@ -249,14 +260,11 @@ class _PostingsScreenState extends State<PostingsScreen> {
     } catch (e) {
       print('Error updating request status: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to update request',
-              style: GoogleFonts.poppins(),
-            ),
-            backgroundColor: Colors.red,
-          ),
+        ErrorHandler.showFirebaseError(
+          context: context,
+          operation: 'update request status',
+          error: e,
+          onRetry: () => _updateRequestStatus(requestId, status),
         );
       }
     }

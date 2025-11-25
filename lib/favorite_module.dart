@@ -7,6 +7,7 @@ import 'homepage_module' show HomeScreen;
 import 'chat_module.dart' show ChatsScreen;
 import 'profile_module.dart' show ProfileScreen;
 import 'book-detail-screen_module.dart' show BookDetailScreen;
+import 'error_handler_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -69,8 +70,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
   }
 
   Future<void> _refreshFavorites() async {
-    _loadFavorites();
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      _loadFavorites();
+      await Future.delayed(const Duration(milliseconds: 500));
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showErrorSnackBar(
+          context: context,
+          message: 'Failed to refresh favorites',
+          onRetry: _refreshFavorites,
+        );
+      }
+    }
   }
 
   void _loadFavorites() {

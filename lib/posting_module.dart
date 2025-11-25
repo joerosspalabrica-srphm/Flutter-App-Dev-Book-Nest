@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'error_handler_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -354,11 +355,11 @@ class _BookPostingFormState extends State<BookPostingForm> {
       if (mounted) Navigator.of(context).pop();
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error posting book: $e'),
-            backgroundColor: Colors.red,
-          ),
+        ErrorHandler.showFirebaseError(
+          context: context,
+          operation: 'post book',
+          error: e,
+          onRetry: _submitForm,
         );
       }
     }
