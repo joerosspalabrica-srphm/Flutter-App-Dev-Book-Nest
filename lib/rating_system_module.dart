@@ -60,19 +60,20 @@ class _RatingDialogState extends State<RatingDialog> {
       
       // Save the rating
       final ratingRef = database.ref('ratings').push();
+      final comment = _commentController.text.trim();
       await ratingRef.set({
         'ratedUserId': widget.ratedUserId,
         'raterUserId': currentUser.uid,
         'rating': _rating,
-        'comment': _commentController.text.trim(),
+        'comment': comment.isEmpty ? '' : comment,
         'bookTitle': widget.bookTitle,
         'transactionId': widget.transactionId,
         'timestamp': ServerValue.timestamp,
         'type': widget.isRatingOwner ? 'owner' : 'borrower',
       });
 
-      // Update the user's average rating
-      await _updateUserRating();
+      // Update the user's average rating (pass the new rating directly)
+      await _updateUserRating(_rating);
 
       // Mark transaction as rated
       await database.ref('borrows/${widget.transactionId}').update({
@@ -112,39 +113,35 @@ class _RatingDialogState extends State<RatingDialog> {
     }
   }
 
-  Future<void> _updateUserRating() async {
+  Future<void> _updateUserRating(int newRating) async {
     try {
-      final ratingsRef = FirebaseDatabase.instance.ref('ratings');
-      final snapshot = await ratingsRef
-          .orderByChild('ratedUserId')
-          .equalTo(widget.ratedUserId)
-          .get();
-
-      if (snapshot.exists) {
-        final ratingsMap = snapshot.value as Map<dynamic, dynamic>;
-        double totalRating = 0;
-        int count = 0;
-
-        ratingsMap.forEach((key, value) {
-          final rating = value['rating'];
-          if (rating != null) {
-            totalRating += rating.toDouble();
-            count++;
-          }
-        });
-
-        final average = count > 0 ? totalRating / count : 0.0;
-
-        // Update user's rating
-        await FirebaseDatabase.instance
-            .ref('users/${widget.ratedUserId}/rating')
-            .set({
-          'average': average,
-          'count': count,
-        });
+      final userRatingRef = FirebaseDatabase.instance
+          .ref('users/${widget.ratedUserId}/rating');
+      
+      // Get current rating data
+      final snapshot = await userRatingRef.get();
+      
+      double currentAverage = 0.0;
+      int currentCount = 0;
+      
+      if (snapshot.exists && snapshot.value != null) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        currentAverage = (data['average'] ?? 0).toDouble();
+        currentCount = (data['count'] ?? 0) as int;
       }
+      
+      // Calculate new average
+      final newCount = currentCount + 1;
+      final newAverage = ((currentAverage * currentCount) + newRating) / newCount;
+      
+      // Update user's rating
+      await userRatingRef.set({
+        'average': double.parse(newAverage.toStringAsFixed(2)),
+        'count': newCount,
+      });
     } catch (e) {
       print('DEBUG: Error updating user rating: $e');
+      rethrow; // Re-throw to show error to user
     }
   }
 
