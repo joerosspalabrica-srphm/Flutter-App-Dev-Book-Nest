@@ -32,13 +32,17 @@ class Message {
   final String text;
   final bool isUser;
   final DateTime timestamp;
+  final String? messageId;
   bool showDelivered;
+  String? reaction;
 
   Message({
     required this.text,
     required this.isUser,
     required this.timestamp,
+    this.messageId,
     this.showDelivered = true,
+    this.reaction,
   });
 }
 
@@ -192,6 +196,8 @@ class _ChatScreenState extends State<ChatScreen> {
               text: value['text'] ?? '',
               isUser: value['senderId'] == currentUserId,
               timestamp: DateTime.fromMillisecondsSinceEpoch(value['timestamp'] ?? 0),
+              messageId: key,
+              reaction: value['reaction'],
             ));
           }
         });
@@ -328,6 +334,46 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  void _showReactionPicker(Message message) {
+    print('Long press detected! Message: ${message.text}');
+    print('Is system chat: ${widget.isSystemChat}');
+    print('Message ID: ${message.messageId}');
+    
+    final reactions = ['❤️', '👍', '😂', '😮', '😢', '😡'];
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black26,
+      builder: (context) => _ReactionPickerDialog(
+        reactions: reactions,
+        currentReaction: message.reaction,
+        onReactionSelected: (emoji) async {
+          Navigator.pop(context);
+          await _addReaction(message, emoji);
+        },
+      ),
+    );
+  }
+
+  Future<void> _addReaction(Message message, String emoji) async {
+    if (!widget.isSystemChat && message.messageId != null) {
+      try {
+        // Remove reaction if same emoji is clicked
+        final newReaction = message.reaction == emoji ? null : emoji;
+        
+        await _messagesRef.child(message.messageId!).update({
+          'reaction': newReaction,
+        });
+        
+        setState(() {
+          message.reaction = newReaction;
+        });
+      } catch (e) {
+        print('Error adding reaction: $e');
+      }
+    }
   }
 
   Widget _buildHeader(bool isSmallMobile, bool isMobile, bool isTablet) {
@@ -470,65 +516,115 @@ class _ChatScreenState extends State<ChatScreen> {
                         },
                       ),
                     )
-                  : Icon(Icons.person, color: Colors.white, size: avatarIconSize),
+                  : (_otherUserAvatar != null
+                      ? ClipOval(
+                          child: Image.file(
+                            _otherUserAvatar!,
+                            fit: BoxFit.cover,
+                            width: avatarRadius * 2,
+                            height: avatarRadius * 2,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(Icons.person, color: Colors.white, size: avatarIconSize);
+                            },
+                          ),
+                        )
+                      : Icon(Icons.person, color: Colors.white, size: avatarIconSize)),
             ),
             SizedBox(width: avatarSpacing),
           ],
           Flexible(
-            child: GestureDetector(
-              onTap: message.isUser ? () {
-                setState(() {
-                  message.showDelivered = !message.showDelivered;
-                });
-              } : null,
-              child: Column(
-                crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: bubblePaddingH, vertical: bubblePaddingV),
-                    decoration: BoxDecoration(
-                      color: message.isUser
-                          ? const Color(0xFF003060)
-                          : const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(bubbleRadius),
-                        topRight: Radius.circular(bubbleRadius),
-                        bottomLeft: Radius.circular(message.isUser ? bubbleRadius : 4),
-                        bottomRight: Radius.circular(message.isUser ? 4 : bubbleRadius),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+            child: Column(
+              crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: message.isUser ? () {
+                    setState(() {
+                      message.showDelivered = !message.showDelivered;
+                    });
+                  } : null,
+                  onDoubleTap: () {
+                    print('Double tap detected! Message: ${message.text}');
+                    _showReactionPicker(message);
+                  },
+                  onLongPress: () {
+                    print('Long press detected! Message: ${message.text}');
+                    _showReactionPicker(message);
+                  },
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: bubblePaddingH, vertical: bubblePaddingV),
+                        decoration: BoxDecoration(
+                          color: message.isUser
+                              ? const Color(0xFF003060)
+                              : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(bubbleRadius),
+                            topRight: Radius.circular(bubbleRadius),
+                            bottomLeft: Radius.circular(message.isUser ? bubbleRadius : 4),
+                            bottomRight: Radius.circular(message.isUser ? 4 : bubbleRadius),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                        child: Text(
+                          message.text,
+                          style: GoogleFonts.poppins(
+                            fontSize: textFontSize,
+                            color: message.isUser ? Colors.white : Colors.black87,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      if (message.reaction != null)
+                        Positioned(
+                          bottom: -8,
+                          right: message.isUser ? 0 : null,
+                          left: message.isUser ? null : 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey.shade300, width: 1),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              message.reaction!,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (message.isUser && message.showDelivered) ...[
+                  SizedBox(height: 4),
+                  Padding(
+                    padding: EdgeInsets.only(right: 4),
                     child: Text(
-                      message.text,
+                      'Delivered',
                       style: GoogleFonts.poppins(
-                        fontSize: textFontSize,
-                        color: message.isUser ? Colors.white : Colors.black87,
-                        height: 1.4,
+                        fontSize: deliveredFontSize,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
-                  if (message.isUser && message.showDelivered) ...[
-                    SizedBox(height: 4),
-                    Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: Text(
-                        'Delivered',
-                        style: GoogleFonts.poppins(
-                          fontSize: deliveredFontSize,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
           ),
           if (message.isUser) ...[
@@ -618,6 +714,151 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Animated Reaction Picker Dialog
+class _ReactionPickerDialog extends StatefulWidget {
+  final List<String> reactions;
+  final String? currentReaction;
+  final Function(String) onReactionSelected;
+
+  const _ReactionPickerDialog({
+    required this.reactions,
+    required this.currentReaction,
+    required this.onReactionSelected,
+  });
+
+  @override
+  State<_ReactionPickerDialog> createState() => _ReactionPickerDialogState();
+}
+
+class _ReactionPickerDialogState extends State<_ReactionPickerDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late List<Animation<double>> _emojiAnimations;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    // Scale animation for the container
+    _scaleAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    );
+
+    // Staggered bounce animations for each emoji
+    _emojiAnimations = List.generate(
+      widget.reactions.length,
+      (index) => Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(
+            index * 0.1,
+            0.6 + (index * 0.1),
+            curve: Curves.elasticOut,
+          ),
+        ),
+      ),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(35),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(
+                widget.reactions.length,
+                (index) => _buildAnimatedEmoji(
+                  widget.reactions[index],
+                  _emojiAnimations[index],
+                  index,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedEmoji(String emoji, Animation<double> animation, int index) {
+    final isSelected = widget.currentReaction == emoji;
+    
+    return ScaleTransition(
+      scale: animation,
+      child: GestureDetector(
+        onTap: () {
+          widget.onReactionSelected(emoji);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? const Color(0xFFD67730).withOpacity(0.15)
+                : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(milliseconds: 300 + (index * 50)),
+            curve: Curves.elasticOut,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: 0.8 + (value * 0.2),
+                child: Text(
+                  emoji,
+                  style: TextStyle(
+                    fontSize: 32,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.1),
+                        offset: const Offset(0, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
