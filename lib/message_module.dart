@@ -111,19 +111,39 @@ class _ChatScreenState extends State<ChatScreen> {
         print('DEBUG: No user data found, using chatName: $_otherUserName');
       }
 
-      // Load user's avatar from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final avatarBase64 = prefs.getString('avatar_base64_${widget.otherUserId}');
-      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
-        try {
-          final bytes = base64Decode(avatarBase64);
-          final tempDir = Directory.systemTemp;
-          final file = File('${tempDir.path}/chat_avatar_${widget.otherUserId}.png');
-          await file.writeAsBytes(bytes);
-          _otherUserAvatar = file;
-        } catch (e) {
-          print('Error loading chat user avatar: $e');
+      // Load user's avatar from Firebase Database first
+      try {
+        final avatarSnapshot = await FirebaseDatabase.instance
+            .ref('users/${widget.otherUserId}/avatar')
+            .once();
+        
+        if (avatarSnapshot.snapshot.exists && avatarSnapshot.snapshot.value != null) {
+          final avatarBase64 = avatarSnapshot.snapshot.value as String;
+          if (avatarBase64.isNotEmpty) {
+            final bytes = base64Decode(avatarBase64);
+            final tempDir = Directory.systemTemp;
+            final file = File('${tempDir.path}/chat_avatar_${widget.otherUserId}.png');
+            await file.writeAsBytes(bytes);
+            _otherUserAvatar = file;
+            
+            // Cache it
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('avatar_base64_${widget.otherUserId}', avatarBase64);
+          }
+        } else {
+          // Fallback to cached avatar
+          final prefs = await SharedPreferences.getInstance();
+          final avatarBase64 = prefs.getString('avatar_base64_${widget.otherUserId}');
+          if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+            final bytes = base64Decode(avatarBase64);
+            final tempDir = Directory.systemTemp;
+            final file = File('${tempDir.path}/chat_avatar_${widget.otherUserId}.png');
+            await file.writeAsBytes(bytes);
+            _otherUserAvatar = file;
+          }
         }
+      } catch (e) {
+        print('Error loading chat user avatar: $e');
       }
 
       if (mounted) {
