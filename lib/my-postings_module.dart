@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
 import 'book-detail-screen_module.dart' show BookDetailScreen;
 import 'notification_system_module.dart';
+import 'book_management_module.dart' show BookManagementScreen;
 
 void main() {
   runApp(const MyApp());
@@ -381,12 +382,57 @@ class _PostingsScreenState extends State<PostingsScreen> {
                     ),
                   ),
                   SizedBox(width: titleSpacing),
-                  Text(
-                    'Postings & Requests',
-                    style: GoogleFonts.poppins(
-                      fontSize: titleFontSize,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF003060),
+                  Expanded(
+                    child: Text(
+                      'Postings & Requests',
+                      style: GoogleFonts.poppins(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF003060),
+                      ),
+                    ),
+                  ),
+                  // Manage Books Button
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BookManagementScreen(),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallMobile ? 12.0 : 16.0,
+                        vertical: isSmallMobile ? 8.0 : 10.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF003060),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.dashboard,
+                            color: Colors.white,
+                            size: isSmallMobile ? 16.0 : 18.0,
+                          ),
+                          if (!isSmallMobile) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              'Manage',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

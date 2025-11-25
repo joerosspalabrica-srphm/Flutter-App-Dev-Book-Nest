@@ -358,36 +358,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ),
                                   SizedBox(width: isSmallMobile ? 8 : 12),
                                   GestureDetector(
-                                onTap: () {
-                                  print('DEBUG: Avatar tapped, switching to profile tab');
-                                  // Call parent callback to switch to profile tab
-                                  if (widget.onNavigationChange != null) {
-                                    widget.onNavigationChange!(3);
-                                  }
-                                },
-                                child: CircleAvatar(
-                                  radius: avatarRadius,
-                                  backgroundColor: const Color(0xFF4A90E2),
-                                  child: _avatarImage != null
-                                      ? ClipOval(
-                                          child: Image.file(
-                                            _avatarImage!,
-                                            fit: BoxFit.cover,
-                                            width: avatarRadius * 2,
-                                            height: avatarRadius * 2,
-                                          ),
-                                        )
-                                      : Image.asset(
-                                          'assets/avatar.png',
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Icon(
-                                              Icons.person,
-                                              color: Colors.white,
-                                              size: avatarIconSize,
-                                            );
-                                          },
-                                        ),
-                                ),
+                                    onTap: () {
+                                      print('DEBUG: Avatar tapped, switching to profile tab');
+                                      // Call parent callback to switch to profile tab
+                                      if (widget.onNavigationChange != null) {
+                                        widget.onNavigationChange!(3);
+                                      }
+                                    },
+                                    child: CircleAvatar(
+                                      radius: avatarRadius,
+                                      backgroundColor: const Color(0xFF4A90E2),
+                                      child: _avatarImage != null
+                                          ? ClipOval(
+                                              child: Image.file(
+                                                _avatarImage!,
+                                                fit: BoxFit.cover,
+                                                width: avatarRadius * 2,
+                                                height: avatarRadius * 2,
+                                              ),
+                                            )
+                                          : Image.asset(
+                                              'assets/avatar.png',
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Icon(
+                                                  Icons.person,
+                                                  color: Colors.white,
+                                                  size: avatarIconSize,
+                                                );
+                                              },
+                                            ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
