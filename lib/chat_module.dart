@@ -129,18 +129,37 @@ class _ChatsScreenState extends State<ChatsScreen> with TickerProviderStateMixin
                     otherUserName = userData['username'] ?? 'User';
                   }
                   
-                  // Load avatar from SharedPreferences
-                  final avatarBase64 = prefs.getString('avatar_base64_$otherUserId');
-                  if (avatarBase64 != null && avatarBase64.isNotEmpty) {
-                    try {
-                      final bytes = base64Decode(avatarBase64);
-                      final tempDir = Directory.systemTemp;
-                      final file = File('${tempDir.path}/chat_list_avatar_$otherUserId.png');
-                      await file.writeAsBytes(bytes);
-                      otherUserAvatar = file;
-                    } catch (e) {
-                      print('Error loading avatar for chat list: $e');
+                  // Load avatar from Firebase Database first
+                  try {
+                    final avatarSnapshot = await FirebaseDatabase.instance
+                        .ref('users/$otherUserId/avatar')
+                        .once();
+                    
+                    if (avatarSnapshot.snapshot.exists && avatarSnapshot.snapshot.value != null) {
+                      final avatarBase64 = avatarSnapshot.snapshot.value as String;
+                      if (avatarBase64.isNotEmpty) {
+                        final bytes = base64Decode(avatarBase64);
+                        final tempDir = Directory.systemTemp;
+                        final file = File('${tempDir.path}/chat_list_avatar_$otherUserId.png');
+                        await file.writeAsBytes(bytes);
+                        otherUserAvatar = file;
+                        
+                        // Cache it
+                        await prefs.setString('avatar_base64_$otherUserId', avatarBase64);
+                      }
+                    } else {
+                      // Fallback to cached avatar
+                      final avatarBase64 = prefs.getString('avatar_base64_$otherUserId');
+                      if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+                        final bytes = base64Decode(avatarBase64);
+                        final tempDir = Directory.systemTemp;
+                        final file = File('${tempDir.path}/chat_list_avatar_$otherUserId.png');
+                        await file.writeAsBytes(bytes);
+                        otherUserAvatar = file;
+                      }
                     }
+                  } catch (e) {
+                    print('Error loading avatar for chat list: $e');
                   }
                 } catch (e) {
                   print('Error fetching user profile: $e');
