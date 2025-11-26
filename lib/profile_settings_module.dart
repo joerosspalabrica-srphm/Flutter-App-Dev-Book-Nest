@@ -51,34 +51,93 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
 
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      return;
+    }
 
     try {
+      print('DEBUG: Fetching user data for UID: ${user.uid}');
       final snapshot = await FirebaseDatabase.instance
           .ref('users/${user.uid}')
           .once();
 
+      print('DEBUG: Snapshot exists: ${snapshot.snapshot.exists}');
+      if (snapshot.snapshot.value != null) {
+        print('DEBUG: Snapshot value type: ${snapshot.snapshot.value.runtimeType}');
+      }
+
       if (snapshot.snapshot.exists) {
         final data = snapshot.snapshot.value as Map?;
-        if (data != null && mounted) {
-          setState(() {
-            _userBio = data['bio']?.toString() ?? '';
-            _userRating = (data['rating'] ?? 0.0).toDouble();
-            _totalRatings = data['totalRatings'] ?? 0;
-            _showEmail = data['privacy']?['showEmail'] ?? true;
-            _showPhone = data['privacy']?['showPhone'] ?? false;
-            _allowMessages = data['privacy']?['allowMessages'] ?? true;
-            _showBorrowHistory = data['privacy']?['showBorrowHistory'] ?? true;
-            _bioController.text = _userBio;
-            _isLoading = false;
-          });
+        if (data != null) {
+          print('DEBUG: User data exists, checking fields...');
+
+          // Check if essential fields are missing and initialize them
+          bool needsUpdate = false;
+          if (!data.containsKey('bio') || !data.containsKey('rating') || !data.containsKey('privacy')) {
+            print('DEBUG: User data exists but missing essential fields, updating...');
+            needsUpdate = true;
+          }
+
+          if (needsUpdate) {
+            // Update existing user data with missing fields
+            await _updateUserDataFields(user);
+
+            // Reload data after update to get the updated values
+            print('DEBUG: Reloading data after update...');
+            final updatedSnapshot = await FirebaseDatabase.instance
+                .ref('users/${user.uid}')
+                .once();
+
+            if (updatedSnapshot.snapshot.exists) {
+              final updatedData = updatedSnapshot.snapshot.value as Map?;
+              if (updatedData != null && mounted) {
+                setState(() {
+                  _userBio = updatedData['bio']?.toString() ?? '';
+                  _userRating = (updatedData['rating'] ?? 0.0).toDouble();
+                  _totalRatings = updatedData['totalRatings'] ?? 0;
+                  _showEmail = updatedData['privacy']?['showEmail'] ?? true;
+                  _showPhone = updatedData['privacy']?['showPhone'] ?? false;
+                  _allowMessages = updatedData['privacy']?['allowMessages'] ?? true;
+                  _showBorrowHistory = updatedData['privacy']?['showBorrowHistory'] ?? true;
+                  _bioController.text = _userBio;
+                  _isLoading = false;
+                });
+              }
+            }
+          } else if (mounted) {
+            // Data is complete, just load it
+            setState(() {
+              _userBio = data['bio']?.toString() ?? '';
+              _userRating = (data['rating'] ?? 0.0).toDouble();
+              _totalRatings = data['totalRatings'] ?? 0;
+              _showEmail = data['privacy']?['showEmail'] ?? true;
+              _showPhone = data['privacy']?['showPhone'] ?? false;
+              _allowMessages = data['privacy']?['allowMessages'] ?? true;
+              _showBorrowHistory = data['privacy']?['showBorrowHistory'] ?? true;
+              _bioController.text = _userBio;
+              _isLoading = false;
+            });
+          }
+        } else if (mounted) {
+          setState(() => _isLoading = false);
         }
       } else {
-        setState(() => _isLoading = false);
+        // User data doesn't exist yet - initialize it
+        print('DEBUG: User data does not exist, creating new entry...');
+        await _initializeUserData(user);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
-    } catch (e) {
-      setState(() => _isLoading = false);
+    } catch (e, stackTrace) {
+      print('DEBUG: Error loading user data: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      print('DEBUG: Error type: ${e.runtimeType}');
       if (mounted) {
+        setState(() => _isLoading = false);
         ErrorHandler.showFirebaseError(
           context: context,
           operation: 'load user data',
@@ -86,6 +145,73 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
           onRetry: _loadUserData,
         );
       }
+    }
+  }
+
+  Future<void> _updateUserDataFields(User user) async {
+    try {
+      print('DEBUG: Updating missing user data fields for ${user.uid}');
+
+      // Update only the missing fields, preserving existing data
+      await FirebaseDatabase.instance.ref('users/${user.uid}').update({
+        'bio': '',
+        'rating': 0.0,
+        'totalRatings': 0,
+        'privacy': {
+          'showEmail': true,
+          'showPhone': false,
+          'allowMessages': true,
+          'showBorrowHistory': true,
+        },
+      });
+      print('DEBUG: User data fields updated successfully');
+    } catch (e, stackTrace) {
+      print('DEBUG: Error updating user data fields: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      // Don't rethrow - this is not critical
+    }
+  }
+
+  Future<void> _initializeUserData(User user) async {
+    try {
+      print('DEBUG: Initializing user data for ${user.uid}');
+      print('DEBUG: User email: ${user.email}');
+
+      // Initialize user node with default values
+      await FirebaseDatabase.instance.ref('users/${user.uid}').set({
+        'email': user.email ?? '',
+        'username': user.displayName ?? '',
+        'uid': user.uid,
+        'bio': '',
+        'rating': 0.0,
+        'totalRatings': 0,
+        'privacy': {
+          'showEmail': true,
+          'showPhone': false,
+          'allowMessages': true,
+          'showBorrowHistory': true,
+        },
+        'createdAt': ServerValue.timestamp,
+      });
+      print('DEBUG: User data initialized successfully for ${user.uid}');
+
+      // Update local state with initialized data
+      if (mounted) {
+        setState(() {
+          _userBio = '';
+          _userRating = 0.0;
+          _totalRatings = 0;
+          _showEmail = true;
+          _showPhone = false;
+          _allowMessages = true;
+          _showBorrowHistory = true;
+          _bioController.text = '';
+        });
+      }
+    } catch (e, stackTrace) {
+      print('DEBUG: Error initializing user data: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      rethrow;
     }
   }
 

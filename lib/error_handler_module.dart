@@ -173,11 +173,11 @@ class ErrorHandler {
   // Parse Firebase error to user-friendly message
   static String _parseFirebaseError(dynamic error) {
     String errorMessage = error.toString().toLowerCase();
-    
+
     if (errorMessage.contains('network')) {
       return 'Network connection issue. Please check your internet.';
-    } else if (errorMessage.contains('permission')) {
-      return 'You don\'t have permission to perform this action.';
+    } else if (errorMessage.contains('permission') || errorMessage.contains('denied')) {
+      return 'Permission denied. Please check Firebase Database rules or contact support.';
     } else if (errorMessage.contains('not found')) {
       return 'The requested data was not found.';
     } else if (errorMessage.contains('timeout')) {
@@ -185,7 +185,8 @@ class ErrorHandler {
     } else if (errorMessage.contains('auth')) {
       return 'Authentication error. Please log in again.';
     } else {
-      return 'An unexpected error occurred. Please try again.';
+      // Return the actual error message for debugging
+      return 'An unexpected error occurred: ${error.toString()}';
     }
   }
 
