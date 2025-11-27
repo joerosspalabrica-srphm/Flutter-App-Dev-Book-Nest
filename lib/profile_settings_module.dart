@@ -94,17 +94,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
             if (updatedSnapshot.snapshot.exists) {
               final updatedData = updatedSnapshot.snapshot.value as Map?;
               if (updatedData != null && mounted) {
+                // Get actual rating count from database
+                final actualCount = await _getActualRatingCount(user.uid);
+                
                 setState(() {
                   _userBio = updatedData['bio']?.toString() ?? '';
                   // Handle rating as either a Map or a number
                   final rating = updatedData['rating'];
                   if (rating is Map) {
                     _userRating = (rating['average'] ?? 0.0).toDouble();
-                    _totalRatings = rating['count'] ?? 0;
                   } else {
                     _userRating = (rating ?? 0.0).toDouble();
-                    _totalRatings = updatedData['totalRatings'] ?? 0;
                   }
+                  _totalRatings = actualCount;
                   _showEmail = updatedData['privacy']?['showEmail'] ?? true;
                   _showPhone = updatedData['privacy']?['showPhone'] ?? false;
                   _allowMessages = updatedData['privacy']?['allowMessages'] ?? true;
@@ -116,17 +118,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
             }
           } else if (mounted) {
             // Data is complete, just load it
+            // Get actual rating count from database
+            final actualCount = await _getActualRatingCount(user.uid);
+            
             setState(() {
               _userBio = data['bio']?.toString() ?? '';
               // Handle rating as either a Map or a number
               final rating = data['rating'];
               if (rating is Map) {
                 _userRating = (rating['average'] ?? 0.0).toDouble();
-                _totalRatings = rating['count'] ?? 0;
               } else {
                 _userRating = (rating ?? 0.0).toDouble();
-                _totalRatings = data['totalRatings'] ?? 0;
               }
+              _totalRatings = actualCount;
               _showEmail = data['privacy']?['showEmail'] ?? true;
               _showPhone = data['privacy']?['showPhone'] ?? false;
               _allowMessages = data['privacy']?['allowMessages'] ?? true;
@@ -159,6 +163,31 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
           onRetry: _loadUserData,
         );
       }
+    }
+  }
+
+  Future<int> _getActualRatingCount(String userId) async {
+    try {
+      final ratingsSnapshot = await FirebaseDatabase.instance
+          .ref('ratings')
+          .get();
+      
+      if (!ratingsSnapshot.exists) return 0;
+      
+      final data = ratingsSnapshot.value as Map<dynamic, dynamic>;
+      int count = 0;
+      
+      for (var entry in data.entries) {
+        final ratingData = entry.value as Map;
+        if (ratingData['ratedUserId'] == userId) {
+          count++;
+        }
+      }
+      
+      return count;
+    } catch (e) {
+      print('DEBUG: Error counting ratings: $e');
+      return 0;
     }
   }
 
