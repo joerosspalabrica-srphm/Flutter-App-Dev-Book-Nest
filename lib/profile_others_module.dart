@@ -178,19 +178,40 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
 
   Future<void> _loadUserRating() async {
     try {
-      final ratingRef = FirebaseDatabase.instance.ref('users/${widget.userId}/rating');
-      final snapshot = await ratingRef.get().timeout(const Duration(seconds: 5));
-
-      if (snapshot.exists && snapshot.value != null) {
-        final data = snapshot.value as Map?;
-        if (data != null) {
-          if (mounted) {
-            setState(() {
-              userRating = (data['average'] ?? 0.0).toDouble();
-              totalRatings = (data['count'] ?? 0).toInt();
-            });
+      // Get actual ratings from database and calculate
+      final ratingsSnapshot = await FirebaseDatabase.instance
+          .ref('ratings')
+          .get()
+          .timeout(const Duration(seconds: 5));
+      
+      double totalRating = 0.0;
+      int count = 0;
+      
+      if (ratingsSnapshot.exists) {
+        final data = ratingsSnapshot.value as Map<dynamic, dynamic>;
+        
+        for (var entry in data.entries) {
+          final ratingData = entry.value as Map;
+          if (ratingData['ratedUserId'] == widget.userId) {
+            final rating = ratingData['rating'];
+            if (rating != null) {
+              totalRating += (rating is int ? rating.toDouble() : rating.toDouble());
+              count++;
+            }
           }
         }
+      }
+      
+      // Calculate average
+      final average = count > 0 ? totalRating / count : 0.0;
+      
+      print('DEBUG: User ${widget.userId} rating - total: $totalRating, count: $count, average: $average');
+      
+      if (mounted) {
+        setState(() {
+          userRating = double.parse(average.toStringAsFixed(2));
+          totalRatings = count;
+        });
       }
     } catch (e) {
       print('DEBUG: Error loading rating: $e');

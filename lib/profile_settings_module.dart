@@ -94,19 +94,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
             if (updatedSnapshot.snapshot.exists) {
               final updatedData = updatedSnapshot.snapshot.value as Map?;
               if (updatedData != null && mounted) {
-                // Get actual rating count from database
-                final actualCount = await _getActualRatingCount(user.uid);
+                // Get actual rating data from database
+                final ratingData = await _getActualRatingData(user.uid);
                 
                 setState(() {
                   _userBio = updatedData['bio']?.toString() ?? '';
-                  // Handle rating as either a Map or a number
-                  final rating = updatedData['rating'];
-                  if (rating is Map) {
-                    _userRating = (rating['average'] ?? 0.0).toDouble();
-                  } else {
-                    _userRating = (rating ?? 0.0).toDouble();
-                  }
-                  _totalRatings = actualCount;
+                  _userRating = ratingData['average'];
+                  _totalRatings = ratingData['count'];
                   _showEmail = updatedData['privacy']?['showEmail'] ?? true;
                   _showPhone = updatedData['privacy']?['showPhone'] ?? false;
                   _allowMessages = updatedData['privacy']?['allowMessages'] ?? true;
@@ -118,19 +112,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
             }
           } else if (mounted) {
             // Data is complete, just load it
-            // Get actual rating count from database
-            final actualCount = await _getActualRatingCount(user.uid);
+            // Get actual rating data from database
+            final ratingData = await _getActualRatingData(user.uid);
             
             setState(() {
               _userBio = data['bio']?.toString() ?? '';
-              // Handle rating as either a Map or a number
-              final rating = data['rating'];
-              if (rating is Map) {
-                _userRating = (rating['average'] ?? 0.0).toDouble();
-              } else {
-                _userRating = (rating ?? 0.0).toDouble();
-              }
-              _totalRatings = actualCount;
+              _userRating = ratingData['average'];
+              _totalRatings = ratingData['count'];
               _showEmail = data['privacy']?['showEmail'] ?? true;
               _showPhone = data['privacy']?['showPhone'] ?? false;
               _allowMessages = data['privacy']?['allowMessages'] ?? true;
@@ -166,28 +154,38 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
     }
   }
 
-  Future<int> _getActualRatingCount(String userId) async {
+  Future<Map<String, dynamic>> _getActualRatingData(String userId) async {
     try {
       final ratingsSnapshot = await FirebaseDatabase.instance
           .ref('ratings')
           .get();
       
-      if (!ratingsSnapshot.exists) return 0;
+      if (!ratingsSnapshot.exists) return {'average': 0.0, 'count': 0};
       
       final data = ratingsSnapshot.value as Map<dynamic, dynamic>;
+      double totalRating = 0.0;
       int count = 0;
       
       for (var entry in data.entries) {
         final ratingData = entry.value as Map;
         if (ratingData['ratedUserId'] == userId) {
-          count++;
+          final rating = ratingData['rating'];
+          if (rating != null) {
+            totalRating += (rating is int ? rating.toDouble() : rating.toDouble());
+            count++;
+          }
         }
       }
       
-      return count;
+      final average = count > 0 ? totalRating / count : 0.0;
+      
+      return {
+        'average': double.parse(average.toStringAsFixed(2)),
+        'count': count,
+      };
     } catch (e) {
-      print('DEBUG: Error counting ratings: $e');
-      return 0;
+      print('DEBUG: Error getting rating data: $e');
+      return {'average': 0.0, 'count': 0};
     }
   }
 

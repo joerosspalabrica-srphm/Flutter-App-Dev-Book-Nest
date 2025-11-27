@@ -115,29 +115,41 @@ class _RatingDialogState extends State<RatingDialog> {
 
   Future<void> _updateUserRating(int newRating) async {
     try {
-      final userRatingRef = FirebaseDatabase.instance
-          .ref('users/${widget.ratedUserId}/rating');
+      // Get all ratings for this user from the database
+      final ratingsSnapshot = await FirebaseDatabase.instance
+          .ref('ratings')
+          .get();
       
-      // Get current rating data
-      final snapshot = await userRatingRef.get();
+      double totalRating = 0.0;
+      int count = 0;
       
-      double currentAverage = 0.0;
-      int currentCount = 0;
-      
-      if (snapshot.exists && snapshot.value != null) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
-        currentAverage = (data['average'] ?? 0).toDouble();
-        currentCount = (data['count'] ?? 0) as int;
+      if (ratingsSnapshot.exists) {
+        final data = ratingsSnapshot.value as Map<dynamic, dynamic>;
+        
+        for (var entry in data.entries) {
+          final ratingData = entry.value as Map;
+          if (ratingData['ratedUserId'] == widget.ratedUserId) {
+            final rating = ratingData['rating'];
+            if (rating != null) {
+              totalRating += (rating is int ? rating.toDouble() : rating.toDouble());
+              count++;
+            }
+          }
+        }
       }
       
-      // Calculate new average
-      final newCount = currentCount + 1;
-      final newAverage = ((currentAverage * currentCount) + newRating) / newCount;
+      // Calculate average from actual database records
+      final newAverage = count > 0 ? totalRating / count : 0.0;
       
-      // Update user's rating
+      print('DEBUG: Rating calculation - total: $totalRating, count: $count, average: $newAverage');
+      
+      // Update user's rating with the calculated average
+      final userRatingRef = FirebaseDatabase.instance
+          .ref('users/${widget.ratedUserId}/rating');
+          
       await userRatingRef.set({
         'average': double.parse(newAverage.toStringAsFixed(2)),
-        'count': newCount,
+        'count': count,
       });
     } catch (e) {
       print('DEBUG: Error updating user rating: $e');
