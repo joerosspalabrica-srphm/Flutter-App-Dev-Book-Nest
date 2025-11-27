@@ -96,8 +96,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
               if (updatedData != null && mounted) {
                 setState(() {
                   _userBio = updatedData['bio']?.toString() ?? '';
-                  _userRating = (updatedData['rating'] ?? 0.0).toDouble();
-                  _totalRatings = updatedData['totalRatings'] ?? 0;
+                  // Handle rating as either a Map or a number
+                  final rating = updatedData['rating'];
+                  if (rating is Map) {
+                    _userRating = (rating['average'] ?? 0.0).toDouble();
+                    _totalRatings = rating['count'] ?? 0;
+                  } else {
+                    _userRating = (rating ?? 0.0).toDouble();
+                    _totalRatings = updatedData['totalRatings'] ?? 0;
+                  }
                   _showEmail = updatedData['privacy']?['showEmail'] ?? true;
                   _showPhone = updatedData['privacy']?['showPhone'] ?? false;
                   _allowMessages = updatedData['privacy']?['allowMessages'] ?? true;
@@ -111,8 +118,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
             // Data is complete, just load it
             setState(() {
               _userBio = data['bio']?.toString() ?? '';
-              _userRating = (data['rating'] ?? 0.0).toDouble();
-              _totalRatings = data['totalRatings'] ?? 0;
+              // Handle rating as either a Map or a number
+              final rating = data['rating'];
+              if (rating is Map) {
+                _userRating = (rating['average'] ?? 0.0).toDouble();
+                _totalRatings = rating['count'] ?? 0;
+              } else {
+                _userRating = (rating ?? 0.0).toDouble();
+                _totalRatings = data['totalRatings'] ?? 0;
+              }
               _showEmail = data['privacy']?['showEmail'] ?? true;
               _showPhone = data['privacy']?['showPhone'] ?? false;
               _allowMessages = data['privacy']?['allowMessages'] ?? true;
