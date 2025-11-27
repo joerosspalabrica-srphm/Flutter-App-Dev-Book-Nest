@@ -223,15 +223,19 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
     // Check if any changes were made
     final nameChanged = usernameController.text.trim() != _originalName;
     final phoneChanged = phoneController.text.trim() != _originalPhone;
-    final passwordChangeRequested = passwordController.text.isNotEmpty || 
-                                    confirmPasswordController.text.isNotEmpty ||
-                                    currentPasswordController.text.isNotEmpty;
+    final passwordChangeRequested = passwordController.text.isNotEmpty;
     
     if (!nameChanged && !phoneChanged && !passwordChangeRequested) {
       _showSnackBar('No changes to save', isError: false);
       setState(() {
         _isEditMode = false;
       });
+      return;
+    }
+    
+    // ALWAYS require current password for ANY changes
+    if (currentPasswordController.text.isEmpty) {
+      _showSnackBar('Please enter your current password to save changes', isError: true);
       return;
     }
     
@@ -259,18 +263,6 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
     
     // Validate password changes if requested
     if (passwordChangeRequested) {
-      // Check if new password is provided
-      if (passwordController.text.isEmpty) {
-        _showSnackBar('Please enter a new password', isError: true);
-        return;
-      }
-      
-      // Check if current password is provided
-      if (currentPasswordController.text.isEmpty) {
-        _showSnackBar('Please enter your current password to change it', isError: true);
-        return;
-      }
-      
       // Check if passwords match
       if (passwordController.text != confirmPasswordController.text) {
         _showSnackBar('New passwords do not match', isError: true);
@@ -295,24 +287,22 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
         return;
       }
       
-      // If password change is requested, verify current password first
-      if (passwordChangeRequested && passwordController.text.isNotEmpty) {
-        try {
-          // Re-authenticate with current password
-          final credential = EmailAuthProvider.credential(
-            email: user.email!,
-            password: currentPasswordController.text,
-          );
-          await user.reauthenticateWithCredential(credential);
-        } on FirebaseAuthException {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-            });
-            _showSnackBar('Current password is incorrect', isError: true);
-          }
-          return;
+      // Always verify current password for any changes
+      try {
+        // Re-authenticate with current password
+        final credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: currentPasswordController.text,
+        );
+        await user.reauthenticateWithCredential(credential);
+      } on FirebaseAuthException {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          _showSnackBar('Current password is incorrect', isError: true);
         }
+        return;
       }
 
       // Update display name if changed
@@ -682,11 +672,6 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                                   borderSide: BorderSide(color: Color(0xFF003366), width: 2),
                                 ),
                                 counterText: '',
-                                prefixIcon: Icon(
-                                  Icons.phone,
-                                  color: Colors.grey,
-                                  size: iconSize,
-                                ),
                               ),
                               style: GoogleFonts.poppins(
                                 fontSize: hintFontSize,
@@ -697,28 +682,36 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                             SizedBox(height: fieldSpacing),
                             
                             // Current Password Field
-                            Wrap(
-                    spacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        'Current Password:',
-                        style: GoogleFonts.poppins(
-                          fontSize: labelFontSize,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Text(
-                        '(Required to change password)',
-                        style: GoogleFonts.poppins(
-                          fontSize: counterFontSize,
-                          color: Colors.grey,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ),
+                            RichText(
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Current Password',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: labelFontSize,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: ' *',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: labelFontSize,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: ':',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: labelFontSize,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                   TextField(
                     controller: currentPasswordController,
                     readOnly: !_isEditMode,
@@ -764,28 +757,12 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                   // New Password Field
                   Row(
                     children: [
-                      Flexible(
-                        child: Wrap(
-                          spacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              'New Password:',
-                              style: GoogleFonts.poppins(
-                                fontSize: labelFontSize,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Text(
-                              '(Optional)',
-                              style: GoogleFonts.poppins(
-                                fontSize: counterFontSize,
-                                color: Colors.grey,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        'New Password:',
+                        style: GoogleFonts.poppins(
+                          fontSize: labelFontSize,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
                         ),
                       ),
                       if (_passwordStrength.isNotEmpty)
