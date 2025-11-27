@@ -657,7 +657,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                               keyboardType: TextInputType.phone,
                               maxLength: 15,
                               decoration: InputDecoration(
-                                hintText: 'Enter phone number (optional)',
+                                hintText: 'Enter phone number',
                                 hintStyle: GoogleFonts.poppins(
                                   color: Colors.grey,
                                   fontSize: hintFontSize,
@@ -801,7 +801,7 @@ class _ProfileLoginScreenState extends State<ProfileLoginScreen> with SingleTick
                         _checkPasswordsMatch();
                       },
                       decoration: InputDecoration(
-                        hintText: 'Enter new password (optional)',
+                        hintText: 'Enter new password',
                         hintStyle: GoogleFonts.poppins(
                           color: Colors.grey,
                           fontSize: hintFontSize,

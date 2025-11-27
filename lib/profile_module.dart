@@ -592,7 +592,7 @@ class _ProfileScreenState extends State<ProfileScreen> with TickerProviderStateM
                       const Divider(height: 30),
                       _buildMenuItem(
                         icon: Icons.access_time,
-                        title: 'Posting History & Requests',
+                        title: 'Posting & Requests',
                         onTap: () {
                           Navigator.push(
                             context,

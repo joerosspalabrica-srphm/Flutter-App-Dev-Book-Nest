@@ -422,85 +422,44 @@ class _PostingsScreenState extends State<PostingsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Header with Back Button and Title
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: headerVerticalPadding,
-              ),
-              child: Row(
-                children: [
-                  InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    borderRadius: BorderRadius.circular(30),
-                    child: Container(
-                      padding: EdgeInsets.all(backButtonPadding),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF003060),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                        size: backIconSize,
-                      ),
-                    ),
+            Column(
+              children: [
+                // Header with Back Button and Title
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding,
+                    vertical: headerVerticalPadding,
                   ),
-                  SizedBox(width: titleSpacing),
-                  Expanded(
-                    child: Text(
-                      'Postings & Requests',
-                      style: GoogleFonts.poppins(
-                        fontSize: titleFontSize,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF003060),
-                      ),
-                    ),
-                  ),
-                  // Manage Books Button
-                  InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const BookManagementScreen(),
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isSmallMobile ? 12.0 : 16.0,
-                        vertical: isSmallMobile ? 8.0 : 10.0,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF003060),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.dashboard,
-                            color: Colors.white,
-                            size: isSmallMobile ? 16.0 : 18.0,
+                  child: Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(30),
+                        child: Container(
+                          padding: EdgeInsets.all(backButtonPadding),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF003060),
+                            shape: BoxShape.circle,
                           ),
-                          if (!isSmallMobile) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              'Manage',
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ],
+                          child: Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: backIconSize,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: titleSpacing),
+                      Expanded(
+                        child: Text(
+                          'Postings & Requests',
+                          style: GoogleFonts.poppins(
+                            fontSize: titleFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF003060),
                       ),
                     ),
                   ),
@@ -698,6 +657,55 @@ class _PostingsScreenState extends State<PostingsScreen> {
             ),
           ],
         ),
+        // Manage Books Button - Bottom Right
+        Positioned(
+          right: horizontalPadding,
+          bottom: 20,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BookManagementScreen(),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallMobile ? 12.0 : 16.0,
+                vertical: isSmallMobile ? 8.0 : 10.0,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF003060),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.dashboard,
+                    color: Colors.white,
+                    size: isSmallMobile ? 16.0 : 18.0,
+                  ),
+                  if (!isSmallMobile) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      'Manage',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
       ),
     );
   }
