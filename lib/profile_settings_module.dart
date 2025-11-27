@@ -888,7 +888,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            isBorrowed ? 'Borrowed from' : 'Lent to',
+                            isBorrowed 
+                                ? 'Borrowed from ${transaction['ownerName'] ?? 'Unknown'}' 
+                                : 'Lent to ${transaction['borrowerName'] ?? 'Unknown'}',
                             style: GoogleFonts.poppins(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -906,7 +908,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
                     Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
                     const SizedBox(width: 6),
                     Text(
-                      _formatDate(transaction['timestamp']),
+                      _formatDate(transaction),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -1119,7 +1121,19 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> with Sing
     );
   }
 
-  String _formatDate(dynamic timestamp) {
+  String _formatDate(dynamic transactionData) {
+    // Try different timestamp fields
+    dynamic timestamp;
+    
+    if (transactionData is Map) {
+      timestamp = transactionData['returnedAt'] ?? 
+                  transactionData['approvedAt'] ?? 
+                  transactionData['requestedAt'] ?? 
+                  transactionData['timestamp'];
+    } else {
+      timestamp = transactionData;
+    }
+    
     if (timestamp == null) return 'Unknown date';
     
     try {
