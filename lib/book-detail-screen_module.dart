@@ -141,6 +141,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         for (var entry in data.entries) {
           final borrowData = entry.value as Map<dynamic, dynamic>;
           if (borrowData['bookId'] == widget.bookId) {
+            // Check if book has been returned - if so, treat as no active request
+            if (borrowData['returned'] == true) {
+              if (mounted) {
+                setState(() {
+                  _borrowStatus = 'none';
+                });
+              }
+              return;
+            }
+            
             if (mounted) {
               setState(() {
                 _borrowStatus = borrowData['status']; // 'pending', 'approved', 'rejected'
