@@ -362,15 +362,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           );
         }
       } else {
-        // Add to favorites
+        // Add to favorites - store only timestamp, book data will be fetched from /books/
         await favRef.set({
-          'bookId': widget.bookId,
-          'title': widget.book['title'] ?? '',
-          'genre': widget.book['genre'] ?? '',
-          'author': widget.book['author'] ?? '',
-          'imageUrl': widget.book['imageUrl'] ?? '',
-          'ownerId': widget.book['ownerId'] ?? '',
-          'ownerName': widget.book['ownerName'] ?? '',
           'addedAt': ServerValue.timestamp,
         });
         

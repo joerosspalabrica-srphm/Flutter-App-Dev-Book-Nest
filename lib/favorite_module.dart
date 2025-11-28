@@ -46,6 +46,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
   List<Map<String, dynamic>> _favorites = [];
   bool _isLoading = true;
   int _unreadCount = 0;
+  
+  // Store book IDs to listen for book changes
+  Set<String> _favoriteBookIds = {};
 
   List<Map<String, dynamic>> get filteredFavorites {
     if (selectedCategory == 'All') {
@@ -67,6 +70,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     _iconAnimationControllers[1].forward(); // Bookmarks icon selected by default
     _loadFavorites();
     _loadUnreadCount();
+    _listenToBookChanges();
   }
 
   Future<void> _refreshFavorites() async {
@@ -97,7 +101,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
     FirebaseDatabase.instance
         .ref('favorites/${user.uid}')
         .onValue
-        .listen((event) {
+        .listen((event) async {
       try {
         final snapshot = event.snapshot;
 
@@ -106,13 +110,40 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
           if (data != null) {
             final List<Map<String, dynamic>> loadedFavorites = [];
             
+            // Get bookIds from favorites
+            final List<String> bookIds = [];
+            final Map<String, dynamic> favoriteTimestamps = {};
+            
             data.forEach((key, value) {
-              if (value is Map) {
-                final bookData = Map<String, dynamic>.from(value);
-                bookData['id'] = key; // Store the bookId
-                loadedFavorites.add(bookData);
+              bookIds.add(key);
+              if (value is Map && value.containsKey('addedAt')) {
+                favoriteTimestamps[key] = value['addedAt'];
               }
             });
+
+            // Fetch actual book data from books database
+            for (String bookId in bookIds) {
+              try {
+                final bookSnapshot = await FirebaseDatabase.instance
+                    .ref('books/$bookId')
+                    .get();
+                
+                if (bookSnapshot.exists && bookSnapshot.value != null) {
+                  final bookData = Map<String, dynamic>.from(bookSnapshot.value as Map);
+                  bookData['id'] = bookId;
+                  bookData['addedAt'] = favoriteTimestamps[bookId] ?? 0;
+                  loadedFavorites.add(bookData);
+                } else {
+                  // Book no longer exists, remove from favorites
+                  print('DEBUG: Book $bookId no longer exists, removing from favorites');
+                  await FirebaseDatabase.instance
+                      .ref('favorites/${user.uid}/$bookId')
+                      .remove();
+                }
+              } catch (e) {
+                print('Error loading book $bookId: $e');
+              }
+            }
 
             // Sort by addedAt timestamp (newest first)
             loadedFavorites.sort((a, b) {
@@ -124,6 +155,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
             if (mounted) {
               setState(() {
                 _favorites = loadedFavorites;
+                _favoriteBookIds = bookIds.toSet();
                 _isLoading = false;
               });
             }
@@ -132,6 +164,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
           if (mounted) {
             setState(() {
               _favorites = [];
+              _favoriteBookIds = {};
               _isLoading = false;
             });
           }
@@ -143,6 +176,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> with TickerProviderSt
             _isLoading = false;
           });
         }
+      }
+    });
+  }
+
+  void _listenToBookChanges() {
+    // Listen to changes in the books database to refresh favorites when books are edited
+    FirebaseDatabase.instance
+        .ref('books')
+        .onValue
+        .listen((event) {
+      // When any book changes, reload favorites to get updated data
+      if (_favoriteBookIds.isNotEmpty && mounted) {
+        _loadFavorites();
       }
     });
   }
